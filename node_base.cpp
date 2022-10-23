@@ -22,9 +22,44 @@
 #include "node_base.h"
 
 NodeBase::NodeBase() {
+  m_symbol = nullptr;
+  m_type = nullptr;
 }
 
 NodeBase::~NodeBase() {
 }
 
 // TODO: implement member functions
+
+void NodeBase::set_symbol(Symbol *symbol) {
+  assert(!has_symbol());
+  assert(m_type == nullptr);
+  m_symbol = symbol;
+}
+
+void NodeBase::set_type(const std::shared_ptr<Type> &type) {
+  assert(!has_symbol());
+  assert(!m_type);
+  m_type = type;
+}
+
+bool NodeBase::has_symbol() const {
+  return m_symbol != nullptr;
+}
+
+Symbol *NodeBase::get_symbol() const {
+  return m_symbol;
+}
+
+std::shared_ptr<Type> NodeBase::get_type() const {
+  // this shouldn't be called unless there is actually a type
+  // associated with this node
+
+  if (has_symbol())
+    return m_symbol->get_type(); // Symbol will definitely have a valid Type
+  else {
+    assert(m_type); // make sure a Type object actually exists
+    return m_type;
+  }
+}
+
