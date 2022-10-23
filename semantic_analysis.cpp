@@ -105,9 +105,9 @@ void SemanticAnalysis::visit_basic_type(Node *n) {
   std::shared_ptr<Type> basic_type = std::shared_ptr<Type>(new BasicType(type, is_signed));
   // Create QualifiedType if necessary
   if (is_const) {
-    basic_type = std::shared_ptr<Type>(new QualifiedType(type, TypeQualifier::CONST));
+    basic_type = std::shared_ptr<Type>(new QualifiedType(basic_type, TypeQualifier::CONST));
   } else if (is_volatile) {
-    basic_type = std::shared_ptr<Type>(new QualifiedType(type, TypeQualifier::VOLATILE));
+    basic_type = std::shared_ptr<Type>(new QualifiedType(basic_type, TypeQualifier::VOLATILE));
   }
   // Annotate node with type
   n->set_type(basic_type);
