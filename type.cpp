@@ -129,11 +129,25 @@ std::string HasMembers::as_str() const {
     if (i > 0)
       s += ", ";
     const Member &member = get_member(i);
-/*
-    s += member.get_name();
-    s += " : ";
-*/
-    s += member.get_type()->as_str();
+
+    // Special case: recursive struct types such as linked list nodes, trees, etc.
+    // will lead to an infinite recursion if we try to recursively
+    // stringify the complete struct type. This is not a complete workaround,
+    // but it handles simple cases like "struct Node *next;".
+
+    bool member_is_recursive = false;
+    if (member.get_type()->is_pointer()) {
+      std::shared_ptr<Type> base_type = member.get_type()->get_base_type();
+      if (base_type.get() == this) {
+        member_is_recursive = true;
+        const StructType *struct_type = dynamic_cast<const StructType *>(this);
+        assert(struct_type != nullptr);
+        s += "pointer to struct " + struct_type->get_name();
+      }
+    }
+
+    if (!member_is_recursive)
+      s += member.get_type()->as_str();
   }
 
   return s;
@@ -317,6 +331,9 @@ bool StructType::is_same(const Type *other) const {
   // with the same name to exist in the same translation unit.
   // So, comparing names *should* be sufficient to determine
   // whether these are the same type.
+
+  // Trivial base case that avoids infinite recursion for recursive types
+  if (this == other) return true;
 
   if (!other->is_struct())
     return false;
