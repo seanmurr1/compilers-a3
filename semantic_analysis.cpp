@@ -44,70 +44,70 @@ void SemanticAnalysis::visit_basic_type(Node *n) {
     int tag = type_child->get_tag();
     switch (tag) {
       case TOK_CONST:
-        if (is_const || (type_set && type == VOID)) SemanticError::raise(n->get_loc, "Malformed basic type");
+        if (is_const || (type_set && type == BasicTypeKind::VOID)) SemanticError::raise(n->get_loc(), "Malformed basic type");
         is_const = true;
         break;
       case TOK_VOLATILE:
-        if (is_volatile || (type_set && type == VOID)) SemanticError::raise(n->get_loc, "Malformed basic type");
+        if (is_volatile || (type_set && type == BasicTypeKind::VOID)) SemanticError::raise(n->get_loc(), "Malformed basic type");
         is_volatile = true;
         break;
       case TOK_UNSIGNED:
-        if (sign_set || (type_set && type == VOID)) SemanticError::raise(n->get_loc, "Malformed basic type");
+        if (sign_set || (type_set && type == BasicTypeKind::VOID)) SemanticError::raise(n->get_loc(), "Malformed basic type");
         is_signed = false;
         sign_set = true;
         break;
       case TOK_SIGNED:
-        if (sign_set || (type_set && type == VOID)) SemanticError::raise(n->get_loc, "Malformed basic type");
+        if (sign_set || (type_set && type == BasicTypeKind::VOID)) SemanticError::raise(n->get_loc(), "Malformed basic type");
         is_signed = true;
         sign_set = true;
         break;
       case TOK_VOID:
-        if (is_volatile || is_const || sign_set || type_set) SemanticError::raise(n->get_loc, "Malformed basic type");
-        type = VOID;
+        if (is_volatile || is_const || sign_set || type_set) SemanticError::raise(n->get_loc(), "Malformed basic type");
+        type = BasicTypeKind::VOID;
         type_set = true;
         break;
       case TOK_INT:
-        if (type_set && (type == SHORT || type == LONG)) break;
-        if (type_set) SemanticError::raise(n->get_loc, "Malformed basic type");
-        type = INT;
+        if (type_set && (type == BasicTypeKind::SHORT || type == BasicTypeKind::LONG)) break;
+        if (type_set) SemanticError::raise(n->get_loc(), "Malformed basic type");
+        type = BasicTypeKind::INT;
         type_set = true;
         break;
       case TOK_CHAR:
-        if (type_set) SemanticError::raise(n->get_loc, "Malformed basic type");
-        type = CHAR;
+        if (type_set) SemanticError::raise(n->get_loc(), "Malformed basic type");
+        type = BasicTypeKind::CHAR;
         type_set = true;
         break;
       case TOK_LONG: 
-        if (type_set && type == INT) {
-          type = LONG;
+        if (type_set && type == BasicTypeKind::INT) {
+          type = BasicTypeKind::LONG;
         } else if (type_set) {
-          SemanticError::raise(n->get_loc, "Malformed basic type");
+          SemanticError::raise(n->get_loc(), "Malformed basic type");
         } else {
-          type = LONG;
+          type = BasicTypeKind::LONG;
         }
         break;
       case TOK_SHORT: 
-        if (type_set && type == INT) {
-          type = SHORT;
+        if (type_set && type == BasicTypeKind::INT) {
+          type = BasicTypeKind::SHORT;
         } else if (type_set) {
-          SemanticError::raise(n->get_loc, "Malformed basic type");
+          SemanticError::raise(n->get_loc(), "Malformed basic type");
         } else {
-          type = SHORT;
+          type = BasicTypeKind::SHORT;
         }
         break;
       default:
-        SemanticError::raise(n->get_loc, "Malformed basic type");
+        SemanticError::raise(n->get_loc(), "Malformed basic type");
     }
   }
   // Int is default type
-  if (!type_set) type = INT;
+  if (!type_set) type = BasicTypeKind::INT;
   // Create BasicType
   std::shared_ptr<Type> basic_type = std::shared_ptr<Type>(new BasicType(type, is_signed));
   // Create QualifiedType if necessary
   if (is_const) {
-    basic_type = std::shared_ptr<Type>(new QualifiedType(type, CONST));
+    basic_type = std::shared_ptr<Type>(new QualifiedType(type, TypeQualifier::CONST));
   } else if (is_volatile) {
-    basic_type = std::shared_ptr<Type>(new QualifiedType(type, VOLATILE));
+    basic_type = std::shared_ptr<Type>(new QualifiedType(type, TypeQualifier::VOLATILE));
   }
   // Annotate node with type
   n->set_type(basic_type);
