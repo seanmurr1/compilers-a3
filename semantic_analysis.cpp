@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <utility>
 #include <map>
+#include <string>
 #include "grammar_symbols.h"
 #include "parse.tab.h"
 #include "node.h"
@@ -9,6 +10,7 @@
 #include "exceptions.h"
 #include "semantic_analysis.h"
 #include "type.h"
+#include "symtab.h"
 
 SemanticAnalysis::SemanticAnalysis()
   : m_global_symtab(new SymbolTable(nullptr)) {
@@ -26,8 +28,44 @@ void SemanticAnalysis::visit_union_type(Node *n) {
   RuntimeError::raise("union types aren't supported");
 }
 
+/**
+ * Recursively processes a (possibly chained) declarator for a variable declaration.
+ **/
+void SemanticAnalysis::process_declarator(Node *declarator, const std::shared_ptr<Type> &base_type) {
+  int tag = declarator->get_tag();
+  switch (tag) {
+    case AST_ARRAY_DECLARATOR:
+      int length = stoi(declarator->get_kid(1)->get_str());
+      std::shared_ptr<Type> new_base_type = std::shared_ptr<Type>(new ArrayType(base_type, length));
+      process_declarator(declarator->get_kid(0), new_base_type);
+      break;
+    case AST_POINTER_DECLARATOR:
+      std::shared_ptr<Type> new_base_type = std::shared_ptr<Type>(new PointerType(base_type));
+      process_declarator(declarator->get_kid(0), new_base_type);
+      break;
+    case AST_NAMED_DECLARATOR:
+      std::string &var_name = declarator->get_kid(0)->get_str();
+      if (m_cur_symtab->has_symbol_local(var_name)) SemanticError::raise(declarator->get_loc(), "Name already defined");
+      //if (declarator->has_symbol()) SemanticError::raise(declarator->get_loc(), "Variable alreayd has symbol");
+      Symbol *sym = m_cur_symtab->declare(SymbolKind::VARIABLE, var_name, base_type);
+      //declarator->set_symbol(sym); // TODO: is this needed?
+      break;
+  }
+}
+
 void SemanticAnalysis::visit_variable_declaration(Node *n) {
-  // TODO: implement
+  // child 0 is storage
+
+  // Visit base type
+  visit(n->get_kid(1));
+  std::shared_ptr<Type> base_type = n->get_kid(1)->get_type();
+
+  // Iterate through declarators, adding vars to symbol table
+  Node *decl_list = n->get_kid(2);
+  for (auto i = decl_list->cbegin(); i != decl_list->cend(); i++) {
+    Node *declarator = *i;
+    process_declarator(declarator, base_type);
+  }
 }
 
 void SemanticAnalysis::visit_basic_type(Node *n) {
