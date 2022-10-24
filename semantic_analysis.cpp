@@ -191,7 +191,7 @@ void SemanticAnalysis::visit_function_definition(Node *n) {
   // Visit return type
   visit(n->get_kid(0));
   // Function name
-  const std::string *fn_name = n->get_kid(1)->get_str();
+  const std::string &fn_name = n->get_kid(1)->get_str();
   // Create function type
   std::shared_ptr<Type> fn_type(new FunctionType(n->get_kid(0)->get_type()));
 
@@ -239,7 +239,7 @@ void SemanticAnalysis::visit_struct_type_definition(Node *n) {
   // Create and define struct type
   const std::string &struct_name = n->get_kid(0)->get_str();
   std::shared_ptr<Type> struct_type(new StructType(struct_name));
-  m_cur_symtab->define(SymbolTableKind::TYPE, "struct " + struct_name, struct_type);
+  m_cur_symtab->define(SymbolKind::TYPE, "struct " + struct_name, struct_type);
 
 
   // TODO
