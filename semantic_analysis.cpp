@@ -198,7 +198,9 @@ void SemanticAnalysis::visit_function_definition(Node *n) {
 
   // Visit parameters
   //Node *param_list = n->get_kid(2);
+  enter_scope();
   visit(n->get_kid(2));
+  leave_scope();
   // for (auto i = param_list->cbegin(); i != param_list->cend(); i++) {
   //   Node *parameter = *i;
   //   parameter->set_type(fn_type);
@@ -220,8 +222,10 @@ void SemanticAnalysis::visit_function_declaration(Node *n) {
   std::shared_ptr<Type> fn_type(new FunctionType(n->get_kid(0)->get_type()));
   // Define function
   m_cur_symtab->declare(SymbolKind::FUNCTION, fn_name, fn_type);
-  // Visit parameters
+  // Visit function parameters
+  enter_scope();
   visit(n->get_kid(2));
+  leave_scope();
 }
 
 void SemanticAnalysis::visit_function_parameter(Node *n) {
