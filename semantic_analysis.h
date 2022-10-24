@@ -46,6 +46,9 @@ private:
 
   Node *promote_to_int(Node *n);
   Node *implicit_conversion(Node *n, const std::shared_ptr<Type> &type);
+
+  void process_function_parameters(Node *parameter_list, std::vector<Node *> declared_parameters, std::shared_ptr<Type> &fn_type);
+  void add_vars_to_sym_table(std::vector<Node *> &vars);
 };
 
 #endif // SEMANTIC_ANALYSIS_H

@@ -140,12 +140,7 @@ void SemanticAnalysis::visit_variable_declaration(Node *n) {
     process_declarator(vars, declarator, base_type);
   }
   // Add vars to symbol table
-  for (auto i = vars.cbegin(); i != vars.cend(); i++) {
-    Node *var = *i;
-    if (m_cur_symtab->has_symbol_local(var->get_str())) SemanticError::raise(var->get_loc(), "Name already defined");
-    m_cur_symtab->define(SymbolKind::VARIABLE, var->get_str(), var->get_type());
-  }
-
+  add_vars_to_sym_table(vars);
 }
 
 void SemanticAnalysis::visit_basic_type(Node *n) {
@@ -233,6 +228,34 @@ void SemanticAnalysis::visit_basic_type(Node *n) {
   n->set_type(basic_type);
 }
 
+// Adds vector of annotated var nodes to current symbol table
+void SemanticAnalysis::add_vars_to_sym_table(std::vector<Node *> &vars) {
+  for (auto i = vars.cbegin(); i != vars.cend(); i++) {
+    Node *var = *i;
+    if (m_cur_symtab->has_symbol_local(var->get_str())) SemanticError::raise(var->get_loc(), "Name already defined");
+    m_cur_symtab->define(SymbolKind::VARIABLE, var->get_str(), var->get_type());
+  }
+}
+
+void SemanticAnalysis::process_function_parameters(Node *parameter_list, std::vector<Node *> declared_parameters, std::shared_ptr<Type> &fn_type) {
+  // Process function parameter types
+  for (auto i = parameter_list->cbegin(); i != parameter_list->cend(); i++) {
+    Node *parameter = *i;
+    // Visit base type
+    visit(parameter->get_kid(0));
+    std::shared_ptr<Type> base_type = parameter->get_kid(0)->get_type();
+    // Process declarators
+    process_declarator(declared_parameters, parameter->get_kid(1), base_type);
+  }
+
+  // Add parameters as members to function type
+  for (auto i = declared_parameters.cbegin(); i != declared_parameters.cend(); i++) {
+    Node *parameter = *i;
+    fn_type->add_member(Member(parameter->get_str(), parameter->get_type()));
+  }
+}
+
+
 void SemanticAnalysis::visit_function_definition(Node *n) {
   // Visit return type
   visit(n->get_kid(0));
@@ -240,12 +263,16 @@ void SemanticAnalysis::visit_function_definition(Node *n) {
   const std::string &fn_name = n->get_kid(1)->get_str();
   // Create function type
   std::shared_ptr<Type> fn_type(new FunctionType(n->get_kid(0)->get_type()));
+
+  std::vector<Node *> declared_parameters;
+  // Process parameters
+  process_fn_parameters(n->get_kid(2), declared_parameters, fn_type);  
   // Define function
   m_cur_symtab->define(SymbolKind::FUNCTION, fn_name, fn_type);
 
-  // Visit parameters
+  // Define parameters (since this is a function definition, not declaration)
   enter_scope();
-  visit(n->get_kid(2));
+  add_vars_to_sym_table(declared_parameters);
   leave_scope();
 
   // Visit function body
@@ -259,14 +286,15 @@ void SemanticAnalysis::visit_function_declaration(Node *n) {
   const std::string &fn_name = n->get_kid(1)->get_str();
   // Create function type
   std::shared_ptr<Type> fn_type(new FunctionType(n->get_kid(0)->get_type()));
+
+  std::vector<Node *> declared_parameters;
+  // Process parameters
+  process_fn_parameters(n->get_kid(2), declared_parameters, fn_type);  
   // Define function
-  m_cur_symtab->declare(SymbolKind::FUNCTION, fn_name, fn_type);
-  // Visit function parameters
-  enter_scope();
-  visit(n->get_kid(2));
-  leave_scope();
+  m_cur_symtab->define(SymbolKind::FUNCTION, fn_name, fn_type);
 }
 
+// NOTE: this is currently unused due to process_function_parameters bypassing it
 void SemanticAnalysis::visit_function_parameter(Node *n) {
   // Visit base type
   visit(n->get_kid(0));
@@ -313,11 +341,7 @@ void SemanticAnalysis::visit_struct_type_definition(Node *n) {
 
   // Add declared fields to symbol table
   enter_scope();
-  for (auto i = declared_fields.cbegin(); i != declared_fields.cend(); i++) {
-    Node *field = *i;
-    if (m_cur_symtab->has_symbol_local(field->get_str())) SemanticError::raise(field->get_loc(), "Name already defined");
-    m_cur_symtab->define(SymbolKind::VARIABLE, field->get_str(), field->get_type());
-  }
+  add_vars_to_sym_table(declared_fields);
   leave_scope();
 
   // Add fields as members
