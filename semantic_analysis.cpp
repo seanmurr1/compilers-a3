@@ -240,11 +240,13 @@ void SemanticAnalysis::visit_function_parameter(Node *n) {
 // Enter new scope and process each child in a statement list
 void SemanticAnalysis::visit_statement_list(Node *n) {
   enter_scope();
+  printf("Entering scope\n");
   for (auto i = n->cbegin(); i != n->cend(); i++) {
     Node *child = *i;
     visit(child);
   }
   leave_scope();
+  printf("Leaving scope\n");
 }
 
 void SemanticAnalysis::visit_struct_type_definition(Node *n) {
