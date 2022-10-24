@@ -39,7 +39,7 @@ public:
 
 private:
   // TODO: add helper functions
-  std::pair<std::string &, std::shared_ptr<Type> &> process_declarator(Node *declarator, const std::shared_ptr<Type> &base_type);
+  std::string &process_declarator(Node *declarator, const std::shared_ptr<Type> &base_type);
 
   void enter_scope();
   void leave_scope();

@@ -57,7 +57,7 @@ void SemanticAnalysis::visit_union_type(Node *n) {
 /**
  * Recursively processes a (possibly chained) declarator for a variable declaration.
  **/
-std::pair<std::string &, std::shared_ptr<Type> &> SemanticAnalysis::process_declarator(Node *declarator, const std::shared_ptr<Type> &base_type) {
+std::string &SemanticAnalysis::process_declarator(Node *declarator, const std::shared_ptr<Type> &base_type) {
   std::shared_ptr<Type> new_base_type;
   
   int tag = declarator->get_tag();
@@ -78,7 +78,7 @@ std::pair<std::string &, std::shared_ptr<Type> &> SemanticAnalysis::process_decl
         const std::string &var_name = declarator->get_kid(0)->get_str();
         if (m_cur_symtab->has_symbol_local(var_name)) SemanticError::raise(declarator->get_loc(), "Name already defined");
         m_cur_symtab->define(SymbolKind::VARIABLE, var_name, base_type);
-        return std::pair<std::string &, std::shared_ptr<Type> &>(var_name, base_type);
+        return var_name;
       }
       break;
     default:
@@ -218,9 +218,10 @@ void SemanticAnalysis::visit_function_parameter(Node *n) {
   visit(n->get_kid(0));
   std::shared_ptr<Type> base_type = n->get_kid(0)->get_type();
   // Process declarators
-  std::pair<std::string &, std::shared_ptr<Type> &> pair = process_declarator(n->get_kid(1), base_type);
+  std::string &param_name = process_declarator(n->get_kid(1), base_type);
+  std::shared_ptr<Type> &param_type = m_cur_symtab->lookup_local(param_name)->get_type();
   // Annotate node
-  n->set_member(pair.first, pair.second);
+  n->set_member(param_name, param_type);
 }
 
 // Enter new scope and process each child in a statement list
