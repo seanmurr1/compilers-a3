@@ -139,7 +139,7 @@ void SemanticAnalysis::visit_variable_declaration(Node *n) {
     process_declarator(vars, declarator, base_type);
   }
   // Add vars to symbol table
-  for (auto i = vars->cbegin(); i != vars->cend(); i++) {
+  for (auto i = vars.cbegin(); i != vars.cend(); i++) {
     Node *var = *i;
     if (m_cur_symtab->has_symbol_local(var->get_str())) SemanticError::raise(var->get_loc(), "Name already defined");
     m_cur_symtab->define(SymbolKind::VARIABLE, var->get_str(), var->get_type());
@@ -310,7 +310,7 @@ void SemanticAnalysis::visit_struct_type_definition(Node *n) {
 
   // Add declared fields to symbol table
   enter_scope();
-  for (auto i = declared_fields->cbegin(); i != declared_fields->cend(); i++) {
+  for (auto i = declared_fields.cbegin(); i != declared_fields.cend(); i++) {
     Node *field = *i;
     if (m_cur_symtab->has_symbol_local(field->get_str())) SemanticError::raise(field->get_loc(), "Name already defined");
     m_cur_symtab->define(SymbolKind::VARIABLE, field->get_str(), field->get_type());
