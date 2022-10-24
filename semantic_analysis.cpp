@@ -57,7 +57,7 @@ void SemanticAnalysis::visit_union_type(Node *n) {
 /**
  * Recursively processes a (possibly chained) declarator for a variable declaration.
  **/
-std::string &SemanticAnalysis::process_declarator(Node *declarator, const std::shared_ptr<Type> &base_type) {
+const std::string &SemanticAnalysis::process_declarator(Node *declarator, const std::shared_ptr<Type> &base_type) {
   std::shared_ptr<Type> new_base_type;
   
   int tag = declarator->get_tag();
@@ -218,7 +218,7 @@ void SemanticAnalysis::visit_function_parameter(Node *n) {
   visit(n->get_kid(0));
   std::shared_ptr<Type> base_type = n->get_kid(0)->get_type();
   // Process declarators
-  std::string &param_name = process_declarator(n->get_kid(1), base_type);
+  const std::string &param_name = process_declarator(n->get_kid(1), base_type);
   base_type = m_cur_symtab->lookup_local(param_name)->get_type();
   // Annotate node
   n->set_member(param_name, base_type);
