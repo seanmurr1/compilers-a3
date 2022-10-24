@@ -298,13 +298,12 @@ void SemanticAnalysis::visit_struct_type_definition(Node *n) {
 
   for (auto i = field_list->cbegin(); i != field_list->cend(); i++) {
     Node *field = *i;  
-
     // Visit base type
-    visit(n->get_kid(1));
-    std::shared_ptr<Type> base_type = n->get_kid(1)->get_type();
+    visit(field->get_kid(1));
+    std::shared_ptr<Type> base_type = field->get_kid(1)->get_type();
     
     // Process declarators
-    Node *decl_list = n->get_kid(2);
+    Node *decl_list = field->get_kid(2);
     for (auto i = decl_list->cbegin(); i != decl_list->cend(); i++) {
       Node *declarator = *i;
       process_declarator(declared_fields, declarator, base_type);
@@ -321,7 +320,7 @@ void SemanticAnalysis::visit_struct_type_definition(Node *n) {
   leave_scope();
 
   // Add fields as members
-  for (auto i = declared_fields->cbegin(); i != declared_fields->cend(); i++) {
+  for (auto i = declared_fields.cbegin(); i != declared_fields.cend(); i++) {
     Node *field = *i;
     struct_type->add_member(Member(field->get_str(), field->get_type()));
   }
