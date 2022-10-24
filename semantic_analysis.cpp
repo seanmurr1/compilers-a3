@@ -219,9 +219,9 @@ void SemanticAnalysis::visit_function_parameter(Node *n) {
   std::shared_ptr<Type> base_type = n->get_kid(0)->get_type();
   // Process declarators
   std::string &param_name = process_declarator(n->get_kid(1), base_type);
-  std::shared_ptr<Type> &param_type = m_cur_symtab->lookup_local(param_name)->get_type();
+  base_type = m_cur_symtab->lookup_local(param_name)->get_type();
   // Annotate node
-  n->set_member(param_name, param_type);
+  n->set_member(param_name, base_type);
 }
 
 // Enter new scope and process each child in a statement list
