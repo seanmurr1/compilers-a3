@@ -97,12 +97,12 @@ void SemanticAnalysis::process_declarator(std::vector<Node *> &vars, Node *decla
       {
         int length = stoi(declarator->get_kid(1)->get_str());
         new_base_type = std::shared_ptr<Type>(new ArrayType(base_type, length));
-        process_declarator(declarator->get_kid(0), new_base_type);
+        process_declarator(vars, declarator->get_kid(0), new_base_type);
       }
       break;
     case AST_POINTER_DECLARATOR:
       new_base_type = std::shared_ptr<Type>(new PointerType(base_type));
-      process_declarator(declarator->get_kid(0), new_base_type);
+      process_declarator(vars, declarator->get_kid(0), new_base_type);
       break;
     case AST_NAMED_DECLARATOR:
       { 
@@ -270,8 +270,11 @@ void SemanticAnalysis::visit_function_parameter(Node *n) {
   // Visit base type
   visit(n->get_kid(0));
   std::shared_ptr<Type> base_type = n->get_kid(0)->get_type();
+
+  // TODO
+  std::vector<Node *> vars;
   // Process declarators
-  process_declarator(n->get_kid(1), base_type);
+  process_declarator(vars, n->get_kid(1), base_type);
 }
 
 // Enter new scope and process each child in a statement list
