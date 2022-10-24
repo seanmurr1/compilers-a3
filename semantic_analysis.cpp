@@ -255,7 +255,6 @@ void SemanticAnalysis::process_function_parameters(Node *parameter_list, std::ve
   }
 }
 
-
 void SemanticAnalysis::visit_function_definition(Node *n) {
   // Visit return type
   visit(n->get_kid(0));
