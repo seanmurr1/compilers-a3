@@ -44,6 +44,7 @@ Node *SemanticAnalysis::implicit_conversion(Node *n, const std::shared_ptr<Type>
 }
 
 void SemanticAnalysis::visit_struct_type(Node *n) {
+  printf("visitn struct typ\n");
   bool is_const = false;
   bool is_volatile = false;
   bool type_set = false;
@@ -63,6 +64,7 @@ void SemanticAnalysis::visit_struct_type(Node *n) {
         break;
       case TOK_IDENT:
         if (type_set) SemanticError::raise(n->get_loc(), "Malformed struct type");
+        printf("Found: %s\n", type_child->get_str());
         struct_type = m_cur_symtab->lookup_recursive(type_child->get_str())->get_type();
         type_set = true;
       default:
