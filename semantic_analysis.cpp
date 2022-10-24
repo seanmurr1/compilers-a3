@@ -230,18 +230,14 @@ void SemanticAnalysis::visit_basic_type(Node *n) {
 
 // Adds vector of annotated var nodes to current symbol table
 void SemanticAnalysis::add_vars_to_sym_table(std::vector<Node *> &vars) {
-  printf("adding vars\n");
   for (auto i = vars.cbegin(); i != vars.cend(); i++) {
     Node *var = *i;
-    printf("adding %s\n", var->get_str().c_str());
     if (m_cur_symtab->has_symbol_local(var->get_str())) SemanticError::raise(var->get_loc(), "Name already defined");
     m_cur_symtab->define(SymbolKind::VARIABLE, var->get_str(), var->get_type());
   }
 }
 
-void SemanticAnalysis::process_function_parameters(Node *parameter_list, std::vector<Node *> declared_parameters, std::shared_ptr<Type> &fn_type) {
-  printf("size of params: %u\n", declared_parameters.size());
-  
+void SemanticAnalysis::process_function_parameters(Node *parameter_list, std::vector<Node *> &declared_parameters, std::shared_ptr<Type> &fn_type) {
   // Process function parameter types
   for (auto i = parameter_list->cbegin(); i != parameter_list->cend(); i++) {
     Node *parameter = *i;
@@ -250,7 +246,6 @@ void SemanticAnalysis::process_function_parameters(Node *parameter_list, std::ve
     std::shared_ptr<Type> base_type = parameter->get_kid(0)->get_type();
     // Process declarators
     process_declarator(declared_parameters, parameter->get_kid(1), base_type);
-    printf("PROCESSED: size of params: %u\n", declared_parameters.size());
   }
 
   // Add parameters as members to function type
@@ -277,8 +272,6 @@ void SemanticAnalysis::visit_function_definition(Node *n) {
 
   // Define parameters (since this is a function definition, not declaration)
   enter_scope();
-  printf("adding parameters...\n");
-  printf("num params: %u\n", declared_parameters.size());
   add_vars_to_sym_table(declared_parameters);
 
   // Visit function body
