@@ -57,7 +57,7 @@ void SemanticAnalysis::visit_union_type(Node *n) {
 /**
  * Recursively processes a (possibly chained) declarator for a variable declaration.
  **/
-const std::string &SemanticAnalysis::process_declarator(Node *declarator, const std::shared_ptr<Type> &base_type) {
+void SemanticAnalysis::process_declarator(Node *declarator, const std::shared_ptr<Type> &base_type) {
   std::shared_ptr<Type> new_base_type;
   
   int tag = declarator->get_tag();
@@ -78,7 +78,6 @@ const std::string &SemanticAnalysis::process_declarator(Node *declarator, const 
         const std::string &var_name = declarator->get_kid(0)->get_str();
         if (m_cur_symtab->has_symbol_local(var_name)) SemanticError::raise(declarator->get_loc(), "Name already defined");
         m_cur_symtab->define(SymbolKind::VARIABLE, var_name, base_type);
-        return var_name;
       }
       break;
     default:
@@ -194,34 +193,48 @@ void SemanticAnalysis::visit_function_definition(Node *n) {
   const std::string &fn_name = n->get_kid(1)->get_str();
   // Create function type
   std::shared_ptr<Type> fn_type(new FunctionType(n->get_kid(0)->get_type()));
-
-  // Visit parameters
-  Node *param_list = n->get_kid(2);
-  visit(param_list);
-  // Add parameters as members
-  for (auto i = param_list->cbegin(); i != param_list->cend(); i++) {
-    Node *parameter = *i;
-    fn_type->add_member(parameter->get_member());
-  }
   // Define function
   m_cur_symtab->define(SymbolKind::FUNCTION, fn_name, fn_type);
+
+  // Visit parameters
+  //Node *param_list = n->get_kid(2);
+  visit(n->get_kid(2));
+  // for (auto i = param_list->cbegin(); i != param_list->cend(); i++) {
+  //   Node *parameter = *i;
+  //   parameter->set_type(fn_type);
+  //   visit(parameter);
+  // }
+
   // Visit function body
   visit(n->get_kid(3));
 }
 
 void SemanticAnalysis::visit_function_declaration(Node *n) {
   // TODO: implement
+
+  // Visit return type
+  visit(n->get_kid(0));
+  // Function name
+  const std::string &fn_name = n->get_kid(1)->get_str();
+  // Create function type
+  std::shared_ptr<Type> fn_type(new FunctionType(n->get_kid(0)->get_type()));
+  // Define function
+  m_cur_symtab->declare(SymbolKind::FUNCTION, fn_name, fn_type);
+  // Visit parameters
+  visit(n->get_kid(2));
 }
 
 void SemanticAnalysis::visit_function_parameter(Node *n) {
+  //std::shared_ptr<Type> fn_type = n->get_type();
   // Visit base type
   visit(n->get_kid(0));
   std::shared_ptr<Type> base_type = n->get_kid(0)->get_type();
   // Process declarators
-  const std::string &param_name = process_declarator(n->get_kid(1), base_type);
-  base_type = m_cur_symtab->lookup_local(param_name)->get_type();
+  process_declarator(n->get_kid(1), base_type);
+  //const std::string &param_name = process_declarator(n->get_kid(1), base_type);
+  //base_type = m_cur_symtab->lookup_local(param_name)->get_type();
   // Annotate node
-  n->set_member(param_name, base_type);
+  //fn_type->add_member(Member(param_name, base_type));
 }
 
 // Enter new scope and process each child in a statement list
