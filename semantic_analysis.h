@@ -39,7 +39,7 @@ public:
 
 private:
   // TODO: add helper functions
-  void process_declarator(Node *declarator, const std::shared_ptr<Type> &base_type);
+  void process_declarator(std::vector<Node *> &vars, Node *declarator, const std::shared_ptr<Type> &base_type);
 
   void enter_scope();
   void leave_scope();

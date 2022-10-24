@@ -44,10 +44,40 @@ Node *SemanticAnalysis::implicit_conversion(Node *n, const std::shared_ptr<Type>
 }
 
 void SemanticAnalysis::visit_struct_type(Node *n) {
-  // TODO: implement
-
-
-
+  bool is_const = false;
+  bool is_volatile = false;
+  bool type_set = false;
+  std::shared_ptr<Type> struct_type;
+  // Process type
+  for (auto i = n->cbegin(); i != n->cend(); i++) {
+    Node *type_child = *i;
+    int tag = type_child->get_tag();
+    switch (tag) {
+      case TOK_CONST:
+        if (is_const) SemanticError::raise(n->get_loc(), "Malformed struct type");
+        is_const = true;
+        break;
+      case TOK_VOLATILE:
+        if (is_volatile) SemanticError::raise(n->get_loc(), "Malformed struct type");
+        is_volatile = true;
+        break;
+      case TOK_IDENT:
+        if (type_set) SemanticError::raise(n->get_loc(), "Malformed struct type");
+        struct_type = m_cur_symtab->lookup_recursive(type_child->get_str())->get_type();
+        type_set = true;
+      default:
+        SemanticError::raise(n->get_loc(), "Malformed struct type");
+    }
+  }
+  assert(type_set);
+  // Create QualifiedType if necessary
+  if (is_const) {
+    struct_type = std::shared_ptr<Type>(new QualifiedType(struct_type, TypeQualifier::CONST));
+  } else if (is_volatile) {
+    struct_type = std::shared_ptr<Type>(new QualifiedType(struct_type, TypeQualifier::VOLATILE));
+  }
+  // Annotate node with type
+  n->set_type(struct_type);
 }
 
 void SemanticAnalysis::visit_union_type(Node *n) {
@@ -56,8 +86,9 @@ void SemanticAnalysis::visit_union_type(Node *n) {
 
 /**
  * Recursively processes a (possibly chained) declarator for a variable declaration.
+ * Annotates parent/root node with name of var and type.
  **/
-void SemanticAnalysis::process_declarator(Node *declarator, const std::shared_ptr<Type> &base_type) {
+void SemanticAnalysis::process_declarator(std::vector<Node *> &vars, Node *declarator, const std::shared_ptr<Type> &base_type) {
   std::shared_ptr<Type> new_base_type;
   
   int tag = declarator->get_tag();
@@ -74,10 +105,16 @@ void SemanticAnalysis::process_declarator(Node *declarator, const std::shared_pt
       process_declarator(declarator->get_kid(0), new_base_type);
       break;
     case AST_NAMED_DECLARATOR:
-      {
-        const std::string &var_name = declarator->get_kid(0)->get_str();
-        if (m_cur_symtab->has_symbol_local(var_name)) SemanticError::raise(declarator->get_loc(), "Name already defined");
-        m_cur_symtab->define(SymbolKind::VARIABLE, var_name, base_type);
+      { 
+        declarator->get_kid(0)->set_type(base_type);
+        vars.push_back(declarator->get_kid(0));
+
+        // const std::string &var_name = declarator->get_kid(0)->get_str();
+        // root->set_str(var_name);
+        // root->set_type(base_type);
+
+        //if (m_cur_symtab->has_symbol_local(var_name)) SemanticError::raise(declarator->get_loc(), "Name already defined");
+        //m_cur_symtab->define(SymbolKind::VARIABLE, var_name, base_type);
       }
       break;
     default:
@@ -87,18 +124,27 @@ void SemanticAnalysis::process_declarator(Node *declarator, const std::shared_pt
 }
 
 void SemanticAnalysis::visit_variable_declaration(Node *n) {
-  // child 0 is storage
+  // child 0 is storage (TODO?)
 
   // Visit base type
   visit(n->get_kid(1));
   std::shared_ptr<Type> base_type = n->get_kid(1)->get_type();
 
-  // Iterate through declarators, adding vars to symbol table
+  std::vector<Node *> vars;
   Node *decl_list = n->get_kid(2);
+
+  // Process declarators
   for (auto i = decl_list->cbegin(); i != decl_list->cend(); i++) {
     Node *declarator = *i;
-    process_declarator(declarator, base_type);
+    process_declarator(vars, declarator, base_type);
   }
+  // Add vars to symbol table
+  for (auto i = vars->cbegin(); i != vars->cend(); i++) {
+    Node *var = *i;
+    if (m_cur_symtab->has_symbol_local(var->get_str())) SemanticError::raise(var->get_loc(), "Name already defined");
+    m_cur_symtab->define(SymbolKind::VARIABLE, var->get_str(), var->get_type());
+  }
+
 }
 
 void SemanticAnalysis::visit_basic_type(Node *n) {
@@ -197,23 +243,15 @@ void SemanticAnalysis::visit_function_definition(Node *n) {
   m_cur_symtab->define(SymbolKind::FUNCTION, fn_name, fn_type);
 
   // Visit parameters
-  //Node *param_list = n->get_kid(2);
   enter_scope();
   visit(n->get_kid(2));
   leave_scope();
-  // for (auto i = param_list->cbegin(); i != param_list->cend(); i++) {
-  //   Node *parameter = *i;
-  //   parameter->set_type(fn_type);
-  //   visit(parameter);
-  // }
 
   // Visit function body
   visit(n->get_kid(3));
 }
 
 void SemanticAnalysis::visit_function_declaration(Node *n) {
-  // TODO: implement
-
   // Visit return type
   visit(n->get_kid(0));
   // Function name
@@ -229,41 +267,61 @@ void SemanticAnalysis::visit_function_declaration(Node *n) {
 }
 
 void SemanticAnalysis::visit_function_parameter(Node *n) {
-  //std::shared_ptr<Type> fn_type = n->get_type();
   // Visit base type
   visit(n->get_kid(0));
   std::shared_ptr<Type> base_type = n->get_kid(0)->get_type();
   // Process declarators
   process_declarator(n->get_kid(1), base_type);
-  //const std::string &param_name = process_declarator(n->get_kid(1), base_type);
-  //base_type = m_cur_symtab->lookup_local(param_name)->get_type();
-  // Annotate node
-  //fn_type->add_member(Member(param_name, base_type));
 }
 
 // Enter new scope and process each child in a statement list
 void SemanticAnalysis::visit_statement_list(Node *n) {
   enter_scope();
-  printf("Entering scope\n");
   for (auto i = n->cbegin(); i != n->cend(); i++) {
     Node *child = *i;
     visit(child);
   }
   leave_scope();
-  printf("Leaving scope\n");
 }
 
 void SemanticAnalysis::visit_struct_type_definition(Node *n) {
-  // TODO: implement
-
   // Create and define struct type
   const std::string &struct_name = n->get_kid(0)->get_str();
   std::shared_ptr<Type> struct_type(new StructType(struct_name));
   m_cur_symtab->define(SymbolKind::TYPE, "struct " + struct_name, struct_type);
 
+  Node *field_list = n->get_kid(1);
+  std::vector<Node *> declared_fields;
 
-  // TODO
+  for (auto i = field_list->cbegin(); i != field_list->cend(); i++) {
+    Node *field = *i;  
 
+    // Visit base type
+    visit(n->get_kid(1));
+    std::shared_ptr<Type> base_type = n->get_kid(1)->get_type();
+    
+    // Process declarators
+    Node *decl_list = n->get_kid(2);
+    for (auto i = decl_list->cbegin(); i != decl_list->cend(); i++) {
+      Node *declarator = *i;
+      process_declarator(declared_fields, declarator, base_type);
+    }
+  }
+
+  // Add declared fields to symbol table
+  enter_scope();
+  for (auto i = declared_fields->cbegin(); i != declared_fields->cend(); i++) {
+    Node *field = *i;
+    if (m_cur_symtab->has_symbol_local(field->get_str())) SemanticError::raise(field->get_loc(), "Name already defined");
+    m_cur_symtab->define(SymbolKind::VARIABLE, field->get_str(), field->get_type());
+  }
+  leave_scope();
+
+  // Add fields as members
+  for (auto i = declared_fields->cbegin(); i != declared_fields->cend(); i++) {
+    Node *field = *i;
+    struct_type->add_member(Member(field->get_str(), field->get_type()));
+  }
 }
 
 void SemanticAnalysis::visit_binary_expression(Node *n) {
