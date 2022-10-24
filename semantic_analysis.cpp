@@ -230,8 +230,10 @@ void SemanticAnalysis::visit_basic_type(Node *n) {
 
 // Adds vector of annotated var nodes to current symbol table
 void SemanticAnalysis::add_vars_to_sym_table(std::vector<Node *> &vars) {
+  printf("adding vars\n");
   for (auto i = vars.cbegin(); i != vars.cend(); i++) {
     Node *var = *i;
+    printf("adding %s\n", var->get_str().c_str());
     if (m_cur_symtab->has_symbol_local(var->get_str())) SemanticError::raise(var->get_loc(), "Name already defined");
     m_cur_symtab->define(SymbolKind::VARIABLE, var->get_str(), var->get_type());
   }
@@ -273,10 +275,11 @@ void SemanticAnalysis::visit_function_definition(Node *n) {
   // Define parameters (since this is a function definition, not declaration)
   enter_scope();
   add_vars_to_sym_table(declared_parameters);
-  leave_scope();
 
   // Visit function body
   visit(n->get_kid(3));
+  
+  leave_scope();
 }
 
 void SemanticAnalysis::visit_function_declaration(Node *n) {
