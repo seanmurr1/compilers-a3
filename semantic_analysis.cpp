@@ -266,7 +266,7 @@ void SemanticAnalysis::visit_function_definition(Node *n) {
 
   std::vector<Node *> declared_parameters;
   // Process parameters
-  process_fn_parameters(n->get_kid(2), declared_parameters, fn_type);  
+  process_function_parameters(n->get_kid(2), declared_parameters, fn_type);  
   // Define function
   m_cur_symtab->define(SymbolKind::FUNCTION, fn_name, fn_type);
 
@@ -289,7 +289,7 @@ void SemanticAnalysis::visit_function_declaration(Node *n) {
 
   std::vector<Node *> declared_parameters;
   // Process parameters
-  process_fn_parameters(n->get_kid(2), declared_parameters, fn_type);  
+  process_function_parameters(n->get_kid(2), declared_parameters, fn_type);  
   // Define function
   m_cur_symtab->define(SymbolKind::FUNCTION, fn_name, fn_type);
 }
