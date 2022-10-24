@@ -240,6 +240,8 @@ void SemanticAnalysis::add_vars_to_sym_table(std::vector<Node *> &vars) {
 }
 
 void SemanticAnalysis::process_function_parameters(Node *parameter_list, std::vector<Node *> declared_parameters, std::shared_ptr<Type> &fn_type) {
+  printf("size of params: %u\n", declared_parameters.size());
+  
   // Process function parameter types
   for (auto i = parameter_list->cbegin(); i != parameter_list->cend(); i++) {
     Node *parameter = *i;
@@ -248,6 +250,7 @@ void SemanticAnalysis::process_function_parameters(Node *parameter_list, std::ve
     std::shared_ptr<Type> base_type = parameter->get_kid(0)->get_type();
     // Process declarators
     process_declarator(declared_parameters, parameter->get_kid(1), base_type);
+    printf("PROCESSED: size of params: %u\n", declared_parameters.size());
   }
 
   // Add parameters as members to function type
