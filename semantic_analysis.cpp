@@ -274,6 +274,8 @@ void SemanticAnalysis::visit_function_definition(Node *n) {
 
   // Define parameters (since this is a function definition, not declaration)
   enter_scope();
+  printf("adding parameters...\n");
+  printf("num params: %u\n", declared_parameters.size());
   add_vars_to_sym_table(declared_parameters);
 
   // Visit function body
