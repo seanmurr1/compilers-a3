@@ -64,8 +64,8 @@ void SemanticAnalysis::visit_struct_type(Node *n) {
         break;
       case TOK_IDENT:
         if (type_set) SemanticError::raise(n->get_loc(), "Malformed struct type");
-        printf("Found: %s\n", type_child->get_str());
-        struct_type = m_cur_symtab->lookup_recursive(type_child->get_str())->get_type();
+        //printf("Found: %s\n", type_child->get_str());
+        struct_type = m_cur_symtab->lookup_recursive("struct " + type_child->get_str())->get_type();
         type_set = true;
       default:
         SemanticError::raise(n->get_loc(), "Malformed struct type");
