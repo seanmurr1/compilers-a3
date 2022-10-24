@@ -51,6 +51,7 @@ void SemanticAnalysis::visit_struct_type(Node *n) {
   std::shared_ptr<Type> struct_type;
   // Process type
   for (auto i = n->cbegin(); i != n->cend(); i++) {
+    printf("proccessing tag\n");
     Node *type_child = *i;
     int tag = type_child->get_tag();
     switch (tag) {
@@ -63,10 +64,12 @@ void SemanticAnalysis::visit_struct_type(Node *n) {
         is_volatile = true;
         break;
       case TOK_IDENT:
+        printf("Found ident\n");
         if (type_set) SemanticError::raise(n->get_loc(), "Malformed struct type");
         //printf("Found: %s\n", type_child->get_str());
         struct_type = m_cur_symtab->lookup_recursive("struct " + type_child->get_str())->get_type();
         type_set = true;
+        break;
       default:
         SemanticError::raise(n->get_loc(), "Malformed struct type");
     }
