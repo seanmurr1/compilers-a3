@@ -78,7 +78,7 @@ std::pair<std::string &, std::shared_ptr<Type> &> SemanticAnalysis::process_decl
         const std::string &var_name = declarator->get_kid(0)->get_str();
         if (m_cur_symtab->has_symbol_local(var_name)) SemanticError::raise(declarator->get_loc(), "Name already defined");
         m_cur_symtab->define(SymbolKind::VARIABLE, var_name, base_type);
-        return std::make_pair(var_name, base_type);
+        return std::pair<std::string &, std::shared_ptr<Type> &>(var_name, base_type);
       }
       break;
     default:
