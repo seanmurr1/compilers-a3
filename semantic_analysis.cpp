@@ -33,10 +33,11 @@ void SemanticAnalysis::visit_union_type(Node *n) {
  **/
 void SemanticAnalysis::process_declarator(Node *declarator, const std::shared_ptr<Type> &base_type) {
   std::shared_ptr<Type> new_base_type;
+  int length;
   int tag = declarator->get_tag();
   switch (tag) {
     case AST_ARRAY_DECLARATOR:
-      int length = stoi(declarator->get_kid(1)->get_str());
+      length = stoi(declarator->get_kid(1)->get_str());
       new_base_type = std::shared_ptr<Type>(new ArrayType(base_type, length));
       process_declarator(declarator->get_kid(0), new_base_type);
       break;
@@ -45,11 +46,14 @@ void SemanticAnalysis::process_declarator(Node *declarator, const std::shared_pt
       process_declarator(declarator->get_kid(0), new_base_type);
       break;
     case AST_NAMED_DECLARATOR:
-      std::string &var_name = declarator->get_kid(0)->get_str();
+      const std::string &var_name = declarator->get_kid(0)->get_str();
       if (m_cur_symtab->has_symbol_local(var_name)) SemanticError::raise(declarator->get_loc(), "Name already defined");
       //if (declarator->has_symbol()) SemanticError::raise(declarator->get_loc(), "Variable alreayd has symbol");
-      m_cur_symtab->declare(SymbolKind::VARIABLE, var_name, base_type);
+      m_cur_symtab->define(SymbolKind::VARIABLE, var_name, base_type);
       //declarator->set_symbol(sym); // TODO: is this needed?
+      break;
+    default:
+      SemanticError::raise(declarator->get_loc(), "Unrecognized declarator");
       break;
   }
 }
