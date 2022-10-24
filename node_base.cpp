@@ -24,6 +24,7 @@
 NodeBase::NodeBase() {
   m_symbol = nullptr;
   m_type = nullptr;
+  m_member = nullptr;
 }
 
 NodeBase::~NodeBase() {
@@ -61,5 +62,13 @@ std::shared_ptr<Type> NodeBase::get_type() const {
     assert(m_type); // make sure a Type object actually exists
     return m_type;
   }
+}
+
+void NodeBase::set_member(const std::string &name, const std::shared_ptr<Type> &type) {
+  m_member = std::unique_ptr<Member>(new Member(name, type));
+}
+
+Member &NodeBase::get_member() {
+  return *m_member.get();
 }
 

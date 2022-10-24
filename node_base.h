@@ -35,6 +35,7 @@ private:
   // TODO: fields (pointer to Type, pointer to Symbol, etc.)
   Symbol *m_symbol;
   std::shared_ptr<Type> m_type;
+  std::unique_ptr<Member> m_member;
 
   // copy ctor and assignment operator not supported
   NodeBase(const NodeBase &);
@@ -50,6 +51,9 @@ public:
   bool has_symbol() const;
   Symbol *get_symbol() const;
   std::shared_ptr<Type> get_type() const;
+
+  void set_member(const std::string &name, const std::shared_ptr<Type> &type);
+  Member &get_member();
 };
 
 #endif // NODE_BASE_H

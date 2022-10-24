@@ -20,8 +20,34 @@ SemanticAnalysis::SemanticAnalysis()
 SemanticAnalysis::~SemanticAnalysis() {
 }
 
+void SemanticAnalysis::enter_scope() {
+  SymbolTable *scope = new SymbolTable(m_cur_symtab);
+  m_cur_symtab = scope;
+}
+
+void SemanticAnalysis::leave_scope() {
+  m_cur_symtab = m_cur_symtab->get_parent();
+  assert(m_cur_symtab != nullptr);
+}
+
+Node *SemanticAnalysis::promote_to_int(Node *n) {
+  assert(n->get_type()->is_integral());
+  assert(n->get_type()->get_basic_type_kind() < BasicTypeKind::INT);
+  std::shared_ptr<Type> type(new BasicType(BasicTypeKind::INT, n->get_type()->is_signed()));
+  return implicit_conversion(n, type);
+}
+
+Node *SemanticAnalysis::implicit_conversion(Node *n, const std::shared_ptr<Type> &type) {
+  std::unique_ptr<Node> conversion(new Node(AST_IMPLICIT_CONVERSION, {n}));
+  conversion->set_type(type);
+  return conversion.release();
+}
+
 void SemanticAnalysis::visit_struct_type(Node *n) {
   // TODO: implement
+
+
+
 }
 
 void SemanticAnalysis::visit_union_type(Node *n) {
@@ -31,7 +57,7 @@ void SemanticAnalysis::visit_union_type(Node *n) {
 /**
  * Recursively processes a (possibly chained) declarator for a variable declaration.
  **/
-void SemanticAnalysis::process_declarator(Node *declarator, const std::shared_ptr<Type> &base_type) {
+std::pair<std::string &, std::shared_ptr<Type> &> SemanticAnalysis::process_declarator(Node *declarator, const std::shared_ptr<Type> &base_type) {
   std::shared_ptr<Type> new_base_type;
   
   int tag = declarator->get_tag();
@@ -52,6 +78,7 @@ void SemanticAnalysis::process_declarator(Node *declarator, const std::shared_pt
         const std::string &var_name = declarator->get_kid(0)->get_str();
         if (m_cur_symtab->has_symbol_local(var_name)) SemanticError::raise(declarator->get_loc(), "Name already defined");
         m_cur_symtab->define(SymbolKind::VARIABLE, var_name, base_type);
+        return std::make_pair(var_name, base_type);
       }
       break;
     default:
@@ -129,6 +156,7 @@ void SemanticAnalysis::visit_basic_type(Node *n) {
           SemanticError::raise(n->get_loc(), "Malformed basic type");
         } else {
           type = BasicTypeKind::LONG;
+          type_set = true;
         }
         break;
       case TOK_SHORT: 
@@ -138,6 +166,7 @@ void SemanticAnalysis::visit_basic_type(Node *n) {
           SemanticError::raise(n->get_loc(), "Malformed basic type");
         } else {
           type = BasicTypeKind::SHORT;
+          type_set = true;
         }
         break;
       default:
@@ -159,7 +188,25 @@ void SemanticAnalysis::visit_basic_type(Node *n) {
 }
 
 void SemanticAnalysis::visit_function_definition(Node *n) {
-  // TODO: implement
+  // Visit return type
+  visit(n->get_kid(0));
+  // Function name
+  const std::string *fn_name = n->get_kid(1)->get_str();
+  // Create function type
+  std::shared_ptr<Type> fn_type(new FunctionType(n->get_kid(0)->get_type()));
+
+  // Visit parameters
+  Node *param_list = n->get_kid(2);
+  visit(param_list);
+  // Add parameters as members
+  for (auto i = param_list->cbegin(); i != param_list->cend(); i++) {
+    Node *parameter = *i;
+    fn_type->add_member(parameter->get_member());
+  }
+  // Define function
+  m_cur_symtab->define(SymbolKind::FUNCTION, fn_name, fn_type);
+  // Visit function body
+  visit(n->get_kid(3));
 }
 
 void SemanticAnalysis::visit_function_declaration(Node *n) {
@@ -167,19 +214,50 @@ void SemanticAnalysis::visit_function_declaration(Node *n) {
 }
 
 void SemanticAnalysis::visit_function_parameter(Node *n) {
-  // TODO: solution
+  // Visit base type
+  visit(n->get_kid(0));
+  std::shared_ptr<Type> base_type = n->get_kid(0)->get_type();
+  // Process declarators
+  std::pair<std::string &, std::shared_ptr<Type> &> pair = process_declarator(n->get_kid(1), base_type);
+  // Annotate node
+  n->set_member(pair.first, pair.second);
 }
 
+// Enter new scope and process each child in a statement list
 void SemanticAnalysis::visit_statement_list(Node *n) {
-  // TODO: implement
+  enter_scope();
+  for (auto i = n->cbegin(); i != n->cend(); i++) {
+    Node *child = *i;
+    visit(child);
+  }
+  leave_scope();
 }
 
 void SemanticAnalysis::visit_struct_type_definition(Node *n) {
   // TODO: implement
+
+  // Create and define struct type
+  const std::string &struct_name = n->get_kid(0)->get_str();
+  std::shared_ptr<Type> struct_type(new StructType(struct_name));
+  m_cur_symtab->define(SymbolTableKind::TYPE, "struct " + struct_name, struct_type);
+
+
+  // TODO
+
 }
 
 void SemanticAnalysis::visit_binary_expression(Node *n) {
   // TODO: implement
+
+  // Leaf nodes will be var refs
+  // annotate leaf with type 
+
+  // Visit left child 
+  visit(n->get_kid(1));
+  // Visit right child
+  visit(n->get_kid(2));
+
+  // TODO
 }
 
 void SemanticAnalysis::visit_unary_expression(Node *n) {
@@ -214,8 +292,14 @@ void SemanticAnalysis::visit_array_element_ref_expression(Node *n) {
   // TODO: implement
 }
 
+// Annotates var reference with pointer to Symbol representing symbol table entry
 void SemanticAnalysis::visit_variable_ref(Node *n) {
-  // TODO: implement
+  const std::string &var_name = n->get_kid(0)->get_str();
+  Symbol *sym = m_cur_symtab->lookup_recursive(var_name);
+  if (sym == nullptr) SemanticError::raise(n->get_loc(), "Undeclared variable reference");
+
+  assert (!n->has_symbol());
+  n->set_symbol(sym);
 }
 
 void SemanticAnalysis::visit_literal_value(Node *n) {

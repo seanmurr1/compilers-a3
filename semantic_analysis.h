@@ -39,7 +39,13 @@ public:
 
 private:
   // TODO: add helper functions
-  void process_declarator(Node *declarator, const std::shared_ptr<Type> &base_type);
+  std::pair<std::string &, std::shared_ptr<Type> &> process_declarator(Node *declarator, const std::shared_ptr<Type> &base_type);
+
+  void enter_scope();
+  void leave_scope();
+
+  Node *promote_to_int(Node *n);
+  Node *implicit_conversion(Node *n, const std::shared_ptr<Type> *type);
 };
 
 #endif // SEMANTIC_ANALYSIS_H
