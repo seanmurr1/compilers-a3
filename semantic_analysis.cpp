@@ -293,6 +293,8 @@ void SemanticAnalysis::visit_struct_type_definition(Node *n) {
   std::shared_ptr<Type> struct_type(new StructType(struct_name));
   m_cur_symtab->define(SymbolKind::TYPE, "struct " + struct_name, struct_type);
 
+  printf("Defined struct\n");
+
   Node *field_list = n->get_kid(1);
   std::vector<Node *> declared_fields;
 
@@ -301,12 +303,15 @@ void SemanticAnalysis::visit_struct_type_definition(Node *n) {
     // Visit base type
     visit(field->get_kid(1));
     std::shared_ptr<Type> base_type = field->get_kid(1)->get_type();
+
+    printf("Found type\n");
     
     // Process declarators
     Node *decl_list = field->get_kid(2);
     for (auto i = decl_list->cbegin(); i != decl_list->cend(); i++) {
       Node *declarator = *i;
       process_declarator(declared_fields, declarator, base_type);
+      printf("Processed decl\n");
     }
   }
 
