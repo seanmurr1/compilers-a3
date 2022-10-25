@@ -15,6 +15,7 @@
 SemanticAnalysis::SemanticAnalysis()
   : m_global_symtab(new SymbolTable(nullptr)) {
   m_cur_symtab = m_global_symtab;
+  m_cur_function = nullptr;
 }
 
 SemanticAnalysis::~SemanticAnalysis() {
@@ -252,6 +253,16 @@ void SemanticAnalysis::process_function_parameters(Node *parameter_list, std::ve
   }
 }
 
+void SemanticAnalysis::visit_return_expression_statement(Node *n) {
+  // Visit return expression
+  visit(n->get_kid(0));
+  // Get expression type
+  std::shared_ptr<Type> return_type = n->get_kid(0)->get_type();
+
+  // Check if return type can be casted/assigned to function return type
+  check_assignment(m_cur_function->get_base_type(), return_type);
+}
+
 void SemanticAnalysis::visit_function_definition(Node *n) {
   // Visit return type
   visit(n->get_kid(0));
@@ -271,8 +282,10 @@ void SemanticAnalysis::visit_function_definition(Node *n) {
   enter_scope();
   add_vars_to_sym_table(declared_parameters);
 
+  m_cur_function = fn_type;
   // Visit function body
   visit(n->get_kid(3));
+  m_cur_function = nullptr;
   
   leave_scope();
 }

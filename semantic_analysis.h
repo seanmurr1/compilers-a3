@@ -11,6 +11,7 @@
 class SemanticAnalysis : public ASTVisitor {
 private:
   SymbolTable *m_global_symtab, *m_cur_symtab;
+  std::shared_ptr<Type> m_cur_function;
 
 public:
   SemanticAnalysis();
@@ -36,6 +37,7 @@ public:
   virtual void visit_array_element_ref_expression(Node *n);
   virtual void visit_variable_ref(Node *n);
   virtual void visit_literal_value(Node *n);
+  virtual void visit_return_expression_statement(Node *n);
 
 private:
   // TODO: add helper functions
