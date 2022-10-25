@@ -44,11 +44,23 @@ private:
   void enter_scope();
   void leave_scope();
 
-  Node *promote_to_int(Node *n);
+  Node *promote_type(Node *n, BasicTypeKind new_type, bool is_signed);
   Node *implicit_conversion(Node *n, const std::shared_ptr<Type> &type);
 
   void process_function_parameters(Node *parameter_list, std::vector<Node *> &declared_parameters, std::shared_ptr<Type> &fn_type);
   void add_vars_to_sym_table(std::vector<Node *> &vars);
+
+  void visit_arithmetic_expression(Node *n);
+
+  bool is_relational_or_logical_op(int tag);
+
+  bool is_pointer_dereference(Node *n);
+  bool is_lvalue(Node *n);
+
+  void process_assignment(Node *n);
+  void process_non_assignment(Node *n);
+
+  void check_assignment(std::shared_ptr<Type> &left, std::shared_ptr<Type> &right);
 };
 
 #endif // SEMANTIC_ANALYSIS_H
