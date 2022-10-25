@@ -394,7 +394,7 @@ void SemanticAnalysis::check_assignment(std::shared_ptr<Type> &left, std::shared
     return;
   } 
   // Pointer assignment
-  else if (left->is_pointer() && right->is_pointer()) {
+  else if ((left->is_pointer() || left->is_array()) && (right->is_pointer() || right->is_array())) {
     if (!left->get_unqualified_type()->is_same(right->get_unqualified_type())) SemanticError::raise(loc, "Mismatch in pointer types");
     if ((right->is_const() && !left->is_const()) || (right->is_volatile() && !left->is_volatile())) SemanticError::raise(loc, "Mismatch in qualifers");
   } 
