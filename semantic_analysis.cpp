@@ -377,6 +377,7 @@ bool SemanticAnalysis::is_lvalue(Node *n) {
     case AST_VARIABLE_REF:
     case AST_ARRAY_ELEMENT_REF_EXPRESSION:
     case AST_FIELD_REF_EXPRESSION:
+    case AST_INDIRECT_FIELD_REF_EXPRESSION:
       return true;
     case AST_UNARY_EXPRESSION:
       return is_pointer_dereference(n);
