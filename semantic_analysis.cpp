@@ -62,11 +62,13 @@ void SemanticAnalysis::visit_struct_type(Node *n) {
         is_volatile = true;
         break;
       case TOK_IDENT:
-        if (type_set) SemanticError::raise(n->get_loc(), "Malformed struct type");
-        Symbol *struct_sym = m_cur_symtab->lookup_recursive("struct " + type_child->get_str());
-        if (struct_sym == nullptr) SemanticError::raise(n->get_loc(), "Unknown struct type");
-        struct_type = struct_sym->get_type();
-        type_set = true;
+        {
+          if (type_set) SemanticError::raise(n->get_loc(), "Malformed struct type");
+          Symbol *struct_sym = m_cur_symtab->lookup_recursive("struct " + type_child->get_str());
+          if (struct_sym == nullptr) SemanticError::raise(n->get_loc(), "Unknown struct type");
+          struct_type = struct_sym->get_type();
+          type_set = true;
+        }
         break;
       default:
         SemanticError::raise(n->get_loc(), "Malformed struct type");
