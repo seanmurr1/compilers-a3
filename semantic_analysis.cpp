@@ -14,7 +14,7 @@
 
 SemanticAnalysis::SemanticAnalysis()
   : m_global_symtab(new SymbolTable(nullptr)) {
-  m_cur_symtab = m_global_symtab;
+  m_cur_symtab = std::unique_ptr<SymbolTable>(m_global_symtab);
   m_cur_function = nullptr;
 }
 
