@@ -597,7 +597,7 @@ void SemanticAnalysis::visit_field_ref_expression(Node *n) {
 
   // Check for matching field name
   for (unsigned i = 0; i < struct_type->get_num_members(); i++) {
-    Member &mem = struct_type->get_member(i);
+    const Member &mem = struct_type->get_member(i);
     if (mem.get_name() == field) {
       n->set_type(mem.get_type());
       return;
@@ -612,14 +612,14 @@ void SemanticAnalysis::visit_indirect_field_ref_expression(Node *n) {
   // Struct field reference
   const std::string &field = n->get_kid(1)->get_str();
   std::shared_ptr<Type> struct_pointer_type = n->get_kid(0)->get_type();
-  std::shared_ptr<Type> struct__type = struct_pointer_type->get_base_type();
+  std::shared_ptr<Type> struct_type = struct_pointer_type->get_base_type();
   // Check if type is actually a pointer to a struct
   // TODO: allow arrays as well?
   if (!(struct_pointer_type->is_pointer() && struct_type->is_struct())) SemanticError::raise(n->get_loc(), "Cannot reference non-struct pointer with ->");
 
   // Check for matching field name
   for (unsigned i = 0; i < struct_type->get_num_members(); i++) {
-    Member &mem = struct_type->get_member(i);
+    const Member &mem = struct_type->get_member(i);
     if (mem.get_name() == field) {
       n->set_type(mem.get_type());
       return;
