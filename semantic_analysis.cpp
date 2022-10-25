@@ -688,7 +688,7 @@ void SemanticAnalysis::visit_literal_value(Node *n) {
       break;
     case TOK_STR_LIT:
       lit = LiteralValue::from_str_literal(lexeme, loc);
-      lit_type = std::shared_ptr<Type>(new BasicType(BasicTypeKind::CHAR, !true));
+      lit_type = std::shared_ptr<Type>(new BasicType(BasicTypeKind::CHAR, true));
       lit_type = std::shared_ptr<Type>(new QualifiedType(lit_type, TypeQualifier::CONST));
       lit_type = std::shared_ptr<Type>(new PointerType(lit_type));
       break;
