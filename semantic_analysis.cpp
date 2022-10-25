@@ -403,8 +403,6 @@ void SemanticAnalysis::check_assignment(std::shared_ptr<Type> &left, std::shared
   else if ((left->is_pointer() || left->is_array()) && (right->is_pointer() || right->is_array())) {
     std::shared_ptr<Type> left_base = left->get_base_type();
     std::shared_ptr<Type> right_base = right->get_base_type();
-    printf("left: %s\n", left_base->as_str().c_str());
-    printf("right: %s\n", right_base->as_str().c_str());
 
     if (!left_base->get_unqualified_type()->is_same(right_base->get_unqualified_type())) { 
       SemanticError::raise(loc, "Mismatch in pointer types");
