@@ -24,17 +24,15 @@ SemanticAnalysis::~SemanticAnalysis() {
 // Enter new scope, with new symbol table
 // Set old symbol table as parent
 void SemanticAnalysis::enter_scope() {
-  SymbolTable *scope = new SymbolTable(m_cur_symtab);
+  std::shared_ptr<SymbolTable> scope(new SymbolTable(m_cur_symtab.get()));
   m_cur_symtab = scope;
 }
 
 // Leave current symbol table scope
 // Transfer to parent symbol table
 void SemanticAnalysis::leave_scope() {
-  SymbolTable *old = m_cur_symtab;
-  m_cur_symtab = m_cur_symtab->get_parent();
+  m_cur_symtab = std::shared_ptr<SymbolTable>(m_cur_symtab->get_parent());
   assert(m_cur_symtab != nullptr);
-  delete old;
 }
 
 // Promote node type to new type (and signedness)
