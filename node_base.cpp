@@ -29,7 +29,6 @@ NodeBase::NodeBase() {
 NodeBase::~NodeBase() {
 }
 
-
 /**
  * Set node's symbol.
  * Must not have a type or symbol already.

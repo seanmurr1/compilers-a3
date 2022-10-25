@@ -325,6 +325,7 @@ void SemanticAnalysis::visit_function_definition(Node *n) {
   enter_scope();
   add_vars_to_sym_table(declared_parameters);
 
+  // Track function to check return type
   m_cur_function = fn_type;
   // Visit function body
   visit(n->get_kid(3));
@@ -735,7 +736,6 @@ void SemanticAnalysis::visit_array_element_ref_expression(Node *n) {
 
   if (!var_type->is_array() && !var_type->is_pointer()) SemanticError::raise(n->get_loc(), "Cannot reference non-array with []");
   if (!n->get_kid(1)->get_type()->is_integral()) SemanticError::raise(n->get_loc(), "Cannot reference array with non-integral index");
-
   // TODO: check for array index out of bounds?
 
   // Annotate node
