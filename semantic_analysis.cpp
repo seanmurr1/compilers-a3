@@ -434,9 +434,6 @@ void SemanticAnalysis::process_non_assignment(Node *n) {
   std::shared_ptr<Type> left = n->get_kid(1)->get_type();
   std::shared_ptr<Type> right = n->get_kid(2)->get_type();
 
-  // Check for integral types
-  if (!left->is_integral() || !right->is_integral()) SemanticError::raise(n->get_loc(), "Illegal binary expression");
-
   if (left->is_pointer() && right->is_pointer()) SemanticError::raise(n->get_loc(), "Arithmetic on two pointers is illegal");
 
   // Check for pointer arithmetic
@@ -451,6 +448,10 @@ void SemanticAnalysis::process_non_assignment(Node *n) {
       SemanticError::raise(n->get_loc(), "Malformed pointer arithmetic");
     }
   }
+
+  // Check for integral types
+  if (!left->is_integral() || !right->is_integral()) SemanticError::raise(n->get_loc(), "Illegal binary expression");
+
 
   bool left_promoted_is_signed = (left->is_signed() != right->is_signed()) && left->is_signed() ? false : left->is_signed();
   bool right_promoted_is_signed = (left->is_signed() != right->is_signed()) && right->is_signed() ? false : right->is_signed();
