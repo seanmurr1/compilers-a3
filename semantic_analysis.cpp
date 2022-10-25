@@ -260,7 +260,7 @@ void SemanticAnalysis::visit_return_expression_statement(Node *n) {
   std::shared_ptr<Type> return_type = n->get_kid(0)->get_type();
 
   // Check if return type can be casted/assigned to function return type
-  check_assignment(m_cur_function->get_base_type(), return_type);
+  check_assignment(m_cur_function->get_base_type(), return_type, n->get_loc());
 }
 
 void SemanticAnalysis::visit_function_definition(Node *n) {
