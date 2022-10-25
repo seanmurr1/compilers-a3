@@ -385,7 +385,7 @@ bool SemanticAnalysis::is_lvalue(Node *n) {
   }
 }
 
-void SemanticAnalysis::check_assignment(std::shared_ptr<Type> &left, std::shared_ptr<Type> &right, Location &loc) {
+void SemanticAnalysis::check_assignment(std::shared_ptr<Type> &left, std::shared_ptr<Type> &right, const Location &loc) {
   // Check for assignment to const lvalue
   if (left->is_const() && !left->is_pointer()) SemanticError::raise(loc, "Assignment to const l-value");
 
@@ -417,7 +417,7 @@ void SemanticAnalysis::process_assignment(Node *n) {
   if (!is_lvalue(n->get_kid(1))) SemanticError::raise(n->get_loc(), "Assignment to non l-value");
 
   // Check for legal assignment
-  Location &loc = n->get_loc();
+  const Location &loc = n->get_loc();
   check_assignment(left, right, loc);
   // Check for promotion
   if (left->is_integral() && right->is_integral() && !left->is_same(right.get())) {
@@ -569,7 +569,7 @@ void SemanticAnalysis::visit_function_call_expression(Node *n) {
     visit(parameter);
     std::shared_ptr<Type> right_type = parameter->get_type();
     std::shared_ptr<Type> left_type = fn_type->get_member(i).get_type();
-    Location &loc = parameter->get_loc();
+    const Location &loc = parameter->get_loc();
     check_assignment(left_type, right_type, loc);
 
     // Check for promotion
