@@ -24,14 +24,14 @@ SemanticAnalysis::~SemanticAnalysis() {
 // Enter new scope, with new symbol table
 // Set old symbol table as parent
 void SemanticAnalysis::enter_scope() {
-  std::shared_ptr<SymbolTable> scope(new SymbolTable(m_cur_symtab.get()));
+  std::shared_ptr<SymbolTable> scope(new SymbolTable(m_cur_symtab.release()));
   m_cur_symtab = scope;
 }
 
 // Leave current symbol table scope
 // Transfer to parent symbol table
 void SemanticAnalysis::leave_scope() {
-  m_cur_symtab = std::shared_ptr<SymbolTable>(m_cur_symtab->get_parent());
+  m_cur_symtab = std::unique_ptr<SymbolTable>(m_cur_symtab->get_parent());
   assert(m_cur_symtab != nullptr);
 }
 
