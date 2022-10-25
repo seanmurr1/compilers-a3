@@ -32,7 +32,7 @@ void SemanticAnalysis::leave_scope() {
 
 Node *SemanticAnalysis::promote_type(Node *n, BasicTypeKind new_type, bool is_signed) {
   assert(n->get_type()->is_integral());
-  assert(n->get_type()->get_basic_type_kind() < BasicTypeKind::INT);
+  //assert(n->get_type()->get_basic_type_kind() < BasicTypeKind::INT);
   std::shared_ptr<Type> type(new BasicType(new_type, is_signed));
   return implicit_conversion(n, type);
 }
@@ -671,11 +671,11 @@ void SemanticAnalysis::visit_literal_value(Node *n) {
       break;
     case TOK_CHAR_LIT:
       lit = LiteralValue::from_char_literal(lexeme, loc);
-      lit_type = std::shared_ptr<Type>(new BasicType(BasicTypeKind::INT, !lit.is_unsigned()));
+      lit_type = std::shared_ptr<Type>(new BasicType(BasicTypeKind::INT, true));
       break;
     case TOK_STR_LIT:
       lit = LiteralValue::from_str_literal(lexeme, loc);
-      lit_type = std::shared_ptr<Type>(new BasicType(BasicTypeKind::CHAR, !lit.is_unsigned()));
+      lit_type = std::shared_ptr<Type>(new BasicType(BasicTypeKind::CHAR, !true));
       lit_type = std::shared_ptr<Type>(new QualifiedType(lit_type, TypeQualifier::CONST));
       lit_type = std::shared_ptr<Type>(new PointerType(lit_type));
       break;
