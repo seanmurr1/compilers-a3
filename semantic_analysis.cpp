@@ -407,7 +407,7 @@ bool SemanticAnalysis::is_lvalue(Node *n) {
   }
 }
 
-void SemanticAnalysis::check_assignment(std::shared_ptr<Type> &left, std::shared_ptr<Type> &right, const Location &loc) {
+void SemanticAnalysis::check_assignment(const std::shared_ptr<Type> &left, const std::shared_ptr<Type> &right, const Location &loc) {
   // Check for assignment to const lvalue
   if (left->is_const() && !left->is_pointer() && !left->is_array()) SemanticError::raise(loc, "Assignment to const l-value");
 
