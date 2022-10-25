@@ -24,8 +24,7 @@ SemanticAnalysis::~SemanticAnalysis() {
 // Enter new scope, with new symbol table
 // Set old symbol table as parent
 void SemanticAnalysis::enter_scope() {
-  std::unique_ptr<SymbolTable> scope(new SymbolTable(m_cur_symtab.release()));
-  m_cur_symtab = scope;
+  m_cur_symtab = std::unique_ptr<SymbolTable>(new SymbolTable(m_cur_symtab.release()));
 }
 
 // Leave current symbol table scope
