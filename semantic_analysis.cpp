@@ -596,7 +596,7 @@ void SemanticAnalysis::visit_field_ref_expression(Node *n) {
   if (!struct_type->is_struct()) SemanticError::raise(n->get_loc(), "Cannot reference non-struct with .");
 
   // Check for matching field name
-  for (unsigned i = 0; i < struct_type->get_num_members(), i++) {
+  for (unsigned i = 0; i < struct_type->get_num_members(); i++) {
     Member &mem = struct_type->get_member(i);
     if (mem.get_name() == field) {
       n->set_type(mem.get_type());
@@ -618,7 +618,7 @@ void SemanticAnalysis::visit_indirect_field_ref_expression(Node *n) {
   if (!(struct_pointer_type->is_pointer() && struct_type->is_struct())) SemanticError::raise(n->get_loc(), "Cannot reference non-struct pointer with ->");
 
   // Check for matching field name
-  for (unsigned i = 0; i < struct_type->get_num_members(), i++) {
+  for (unsigned i = 0; i < struct_type->get_num_members(); i++) {
     Member &mem = struct_type->get_member(i);
     if (mem.get_name() == field) {
       n->set_type(mem.get_type());
