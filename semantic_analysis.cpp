@@ -375,6 +375,7 @@ bool SemanticAnalysis::is_lvalue(Node *n) {
   int tag = n->get_tag();
   switch (tag) {
     case AST_VARIABLE_REF:
+      return (!n->get_type()->is_array());
     case AST_ARRAY_ELEMENT_REF_EXPRESSION:
     case AST_FIELD_REF_EXPRESSION:
     case AST_INDIRECT_FIELD_REF_EXPRESSION:
@@ -396,10 +397,13 @@ void SemanticAnalysis::check_assignment(std::shared_ptr<Type> &left, std::shared
   } 
   // Pointer assignment
   else if ((left->is_pointer() || left->is_array()) && (right->is_pointer() || right->is_array())) {
-    if (!left->get_base_type()->get_unqualified_type()->is_same(right->get_base_type()->get_unqualified_type())) { 
+    std::shared_ptr<Type> left_base = left->get_base_type();
+    std::shared_ptr<Type> right_base = right->get_base_type();
+
+    if (!left_base->get_unqualified_type()->is_same(right_base->get_unqualified_type())) { 
       SemanticError::raise(loc, "Mismatch in pointer types");
     }
-    if ((right->is_const() && !left->is_const()) || (right->is_volatile() && !left->is_volatile())) SemanticError::raise(loc, "Mismatch in qualifers");
+    if ((right_base->is_const() && !left_base->is_const()) || (right_base->is_volatile() && !left_base->is_volatile())) SemanticError::raise(loc, "Mismatch in qualifers");
   } 
   // Struct assignment
   else if (left->is_struct() && right->is_struct()) {
