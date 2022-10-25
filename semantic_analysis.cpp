@@ -417,7 +417,8 @@ void SemanticAnalysis::process_assignment(Node *n) {
   if (!is_lvalue(n->get_kid(1))) SemanticError::raise(n->get_loc(), "Assignment to non l-value");
 
   // Check for legal assignment
-  check_assignment(left, right, n->get_loc());
+  Location &loc = n->get_loc();
+  check_assignment(left, right, loc);
   // Check for promotion
   if (left->is_integral() && right->is_integral() && !left->is_same(right.get())) {
     n->set_kid(2, promote_type(n->get_kid(2), left->get_basic_type_kind(), left->is_signed()));
@@ -469,7 +470,7 @@ void SemanticAnalysis::process_non_assignment(Node *n) {
     if (left_promoted_is_signed != left->is_signed()) n->set_kid(1, promote_type(n->get_kid(1), promotion_type, left_promoted_is_signed));
   } 
   // Promote only signs
-  else if (left->is_signed() != left_promoted_is_signed || right->is_signed != right_promoted_is_signed) {
+  else if (left->is_signed() != left_promoted_is_signed || right->is_signed() != right_promoted_is_signed) {
     if (left_promoted_is_signed != left->is_signed()) n->set_kid(1, promote_type(n->get_kid(1), left->get_basic_type_kind(), left_promoted_is_signed));
     if (right_promoted_is_signed != right->is_signed()) n->set_kid(2, promote_type(n->get_kid(2), right->get_basic_type_kind(), right_promoted_is_signed));
   }
@@ -563,13 +564,13 @@ void SemanticAnalysis::visit_function_call_expression(Node *n) {
   if (fn_type->get_num_members() != arg_list->get_num_kids()) SemanticError::raise(n->get_loc(), "Bad number of parameters for function call");
 
   // Check each parameter
-  unsigned member_index = 0;
   for (unsigned i = 0; i != arg_list->get_num_kids(); i++) {
     Node *parameter = arg_list->get_kid(i);
     visit(parameter);
     std::shared_ptr<Type> right_type = parameter->get_type();
     std::shared_ptr<Type> left_type = fn_type->get_member(i).get_type();
-    check_assignment(left_type, right_type, parameter->get_loc());
+    Location &loc = parameter->get_loc();
+    check_assignment(left_type, right_type, loc);
 
     // Check for promotion
     if (left_type->is_integral() && right_type->is_integral() && !left_type->is_same(right_type.get())) {
