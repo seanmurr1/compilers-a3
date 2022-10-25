@@ -634,7 +634,9 @@ void SemanticAnalysis::visit_array_element_ref_expression(Node *n) {
   // Visit index
   visit(n->get_kid(1));
 
-  if (!n->get_kid(0)->get_type()->is_array()) SemanticError::raise(n->get_loc(), "Cannot reference non-array with []");
+  std::shared_ptr<Type> var_type = n->get_kid(0)->get_type();
+
+  if (!var_type->is_array() && !var_type->is_pointer()) SemanticError::raise(n->get_loc(), "Cannot reference non-array with []");
   if (!n->get_kid(1)->get_type()->is_integral()) SemanticError::raise(n->get_loc(), "Cannot reference array with non-integral index");
 
   // TODO: check for array index out of bounds?
