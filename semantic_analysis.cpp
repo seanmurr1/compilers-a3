@@ -14,23 +14,31 @@
 
 SemanticAnalysis::SemanticAnalysis()
   : m_global_symtab(new SymbolTable(nullptr)) {
-  m_cur_symtab = std::unique_ptr<SymbolTable>(m_global_symtab);
+  m_cur_symtab = m_global_symtab;
   m_cur_function = nullptr;
 }
 
 SemanticAnalysis::~SemanticAnalysis() {
+  while (m_cur_symtab != nullptr) {
+    SymbolTable *next = m_cur_symtab->get_parent();
+    delete m_cur_symtab;
+    m_cur_symtab = next;
+  }
 }
 
 // Enter new scope, with new symbol table
 // Set old symbol table as parent
 void SemanticAnalysis::enter_scope() {
-  m_cur_symtab = std::unique_ptr<SymbolTable>(new SymbolTable(m_cur_symtab.release()));
+  SymbolTable *scope = new SymbolTable(m_cur_symtab);
+  m_cur_symtab = scope;
 }
 
 // Leave current symbol table scope
 // Transfer to parent symbol table
 void SemanticAnalysis::leave_scope() {
-  m_cur_symtab = std::unique_ptr<SymbolTable>(m_cur_symtab->get_parent());
+  SymbolTable *old = m_cur_symtab;
+  m_cur_symtab = m_cur_symtab->get_parent();
+  delete old;
   assert(m_cur_symtab != nullptr);
 }
 
@@ -51,7 +59,9 @@ Node *SemanticAnalysis::implicit_conversion(Node *n, const std::shared_ptr<Type>
   return conversion.release();
 }
 
-// Visits a struct type node
+/**
+ * Visits a struct type node. Annotate node with processed type.
+ **/
 void SemanticAnalysis::visit_struct_type(Node *n) {
   bool is_const = false;
   bool is_volatile = false;
@@ -95,6 +105,9 @@ void SemanticAnalysis::visit_struct_type(Node *n) {
   n->set_type(struct_type);
 }
 
+/**
+ * Visit union type. Currently unsupported.
+ **/
 void SemanticAnalysis::visit_union_type(Node *n) {
   RuntimeError::raise("union types aren't supported");
 }
@@ -131,8 +144,10 @@ void SemanticAnalysis::process_declarator(std::vector<Node *> &vars, Node *decla
   }
 }
 
-// Visits variable declaration node.
-// Processes base type and declarators.
+/**
+ * Visits variable declaration node.
+ * Processes base type and declarators.
+ **/
 void SemanticAnalysis::visit_variable_declaration(Node *n) {
   // child 0 is storage (TODO?)
 
@@ -152,7 +167,9 @@ void SemanticAnalysis::visit_variable_declaration(Node *n) {
   add_vars_to_sym_table(vars);
 }
 
-// Visits basic type node, processing the full type (and qualifiers if present)
+/**
+ * Visits basic type node, processing the full type (and qualifiers if present).
+ **/
 void SemanticAnalysis::visit_basic_type(Node *n) {
   bool type_set = false;
   bool is_signed = true;
@@ -238,7 +255,9 @@ void SemanticAnalysis::visit_basic_type(Node *n) {
   n->set_type(basic_type);
 }
 
-// Adds vector of annotated var nodes to current symbol table
+/** 
+ * Adds vector of annotated var nodes to current symbol table.
+ **/
 void SemanticAnalysis::add_vars_to_sym_table(std::vector<Node *> &vars) {
   for (auto i = vars.cbegin(); i != vars.cend(); i++) {
     Node *var = *i;
@@ -247,7 +266,10 @@ void SemanticAnalysis::add_vars_to_sym_table(std::vector<Node *> &vars) {
   }
 }
 
-// Processes a functions parameters, processing each type, and adding them as members to the function
+/**
+ * Processes a functions parameters, processing each type, 
+ * and adding them as members to the function.
+ **/
 void SemanticAnalysis::process_function_parameters(Node *parameter_list, std::vector<Node *> &declared_parameters, std::shared_ptr<Type> &fn_type) {
   // Process function parameter types
   for (auto i = parameter_list->cbegin(); i != parameter_list->cend(); i++) {
@@ -266,7 +288,10 @@ void SemanticAnalysis::process_function_parameters(Node *parameter_list, std::ve
   }
 }
 
-// Visits return expression, checking that the type is compatible with its function return type.
+/**
+ * Visits return expression, checking that the type is compatible 
+ * with its function return type.
+ **/
 void SemanticAnalysis::visit_return_expression_statement(Node *n) {
   // Visit return expression
   visit(n->get_kid(0));
@@ -607,17 +632,14 @@ void SemanticAnalysis::visit_unary_expression(Node *n) {
   }
 }
 
-void SemanticAnalysis::visit_postfix_expression(Node *n) {
-  // TODO: implement
-}
+/* UNUSED. */
+void SemanticAnalysis::visit_postfix_expression(Node *n) {}
 
-void SemanticAnalysis::visit_conditional_expression(Node *n) {
-  // TODO: implement
-}
+/* UNUSED. */
+void SemanticAnalysis::visit_conditional_expression(Node *n) {}
 
-void SemanticAnalysis::visit_cast_expression(Node *n) {
-  // TODO: implement
-}
+/* UNUSED. */
+void SemanticAnalysis::visit_cast_expression(Node *n) {}
 
 /**
  * Visits and processes a function call.

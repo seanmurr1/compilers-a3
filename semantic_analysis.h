@@ -10,8 +10,7 @@
 
 class SemanticAnalysis : public ASTVisitor {
 private:
-  SymbolTable *m_global_symtab;
-  std::unique_ptr<SymbolTable> m_cur_symtab;
+  SymbolTable *m_global_symtab, *m_cur_symtab;
   std::shared_ptr<Type> m_cur_function;
 
 public:

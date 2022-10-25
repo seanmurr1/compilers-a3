@@ -32,7 +32,7 @@
 // etc.)
 class NodeBase {
 private:
-  // TODO: fields (pointer to Type, pointer to Symbol, etc.)
+  // fields (pointer to Type, pointer to Symbol, etc.)
   Symbol *m_symbol;
   std::shared_ptr<Type> m_type;
 
@@ -44,7 +44,6 @@ public:
   NodeBase();
   virtual ~NodeBase();
 
-  // TODO: add member functions
   void set_symbol(Symbol *symbol);
   void set_type(const std::shared_ptr<Type> &type);
   bool has_symbol() const;

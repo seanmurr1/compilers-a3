@@ -29,28 +29,41 @@ NodeBase::NodeBase() {
 NodeBase::~NodeBase() {
 }
 
-// TODO: implement member functions
 
+/**
+ * Set node's symbol.
+ * Must not have a type or symbol already.
+ **/
 void NodeBase::set_symbol(Symbol *symbol) {
   assert(!has_symbol());
   assert(m_type == nullptr);
   m_symbol = symbol;
 }
 
+/** 
+ * Set node's type.
+ * Must not have a type or symbol already.
+ **/
 void NodeBase::set_type(const std::shared_ptr<Type> &type) {
   assert(!has_symbol());
   assert(!m_type);
   m_type = type;
 }
 
+// Does node have a symbol?
 bool NodeBase::has_symbol() const {
   return m_symbol != nullptr;
 }
 
+// Get node's symbol.
 Symbol *NodeBase::get_symbol() const {
   return m_symbol;
 }
 
+/**
+ * Gets node's type. If it has a symbol, returns
+ * symbol's type.
+ **/
 std::shared_ptr<Type> NodeBase::get_type() const {
   // this shouldn't be called unless there is actually a type
   // associated with this node
