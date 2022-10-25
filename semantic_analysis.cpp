@@ -64,6 +64,7 @@ void SemanticAnalysis::visit_struct_type(Node *n) {
       case TOK_IDENT:
         if (type_set) SemanticError::raise(n->get_loc(), "Malformed struct type");
         struct_type = m_cur_symtab->lookup_recursive("struct " + type_child->get_str())->get_type();
+        if (struct_type == nullptr) SemanticError::raise(n->get_loc(), "Unknown struct type");
         type_set = true;
         break;
       default:
@@ -260,6 +261,7 @@ void SemanticAnalysis::visit_function_definition(Node *n) {
   // Process parameters
   process_function_parameters(n->get_kid(2), declared_parameters, fn_type);  
   // Define function
+  if (m_cur_symtab->has_symbol_local(fn_name)) SemanticError::raise(n->get_loc(), "Function name already in use");
   m_cur_symtab->define(SymbolKind::FUNCTION, fn_name, fn_type);
 
   // Define parameters (since this is a function definition, not declaration)
@@ -284,6 +286,7 @@ void SemanticAnalysis::visit_function_declaration(Node *n) {
   // Process parameters
   process_function_parameters(n->get_kid(2), declared_parameters, fn_type);  
   // Define function
+  if (m_cur_symtab->has_symbol_local(fn_name)) SemanticError::raise(n->get_loc(), "Function name already in use");
   m_cur_symtab->define(SymbolKind::FUNCTION, fn_name, fn_type);
 }
 
@@ -313,6 +316,7 @@ void SemanticAnalysis::visit_struct_type_definition(Node *n) {
   // Create and define struct type
   const std::string &struct_name = n->get_kid(0)->get_str();
   std::shared_ptr<Type> struct_type(new StructType(struct_name));
+  if (m_cur_symtab->has_symbol_local("struct " + struct_name)) SemanticError::raise(n->get_loc(), "Struct name already defined");
   m_cur_symtab->define(SymbolKind::TYPE, "struct " + struct_name, struct_type);
 
   Node *field_list = n->get_kid(1);
