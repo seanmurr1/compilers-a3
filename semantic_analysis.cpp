@@ -21,34 +21,46 @@ SemanticAnalysis::SemanticAnalysis()
 SemanticAnalysis::~SemanticAnalysis() {
 }
 
+// Enter new scope, with new symbol table
+// Set old symbol table as parent
 void SemanticAnalysis::enter_scope() {
   SymbolTable *scope = new SymbolTable(m_cur_symtab);
   m_cur_symtab = scope;
 }
 
+// Leave current symbol table scope
+// Transfer to parent symbol table
 void SemanticAnalysis::leave_scope() {
+  SymbolTable *old = m_cur_symtab;
   m_cur_symtab = m_cur_symtab->get_parent();
   assert(m_cur_symtab != nullptr);
+  delete old;
 }
 
+// Promote node type to new type (and signedness)
+// Must be integral type
+// Adds new implicit conversion node
 Node *SemanticAnalysis::promote_type(Node *n, BasicTypeKind new_type, bool is_signed) {
   assert(n->get_type()->is_integral());
-  //assert(n->get_type()->get_basic_type_kind() < BasicTypeKind::INT);
   std::shared_ptr<Type> type(new BasicType(new_type, is_signed));
   return implicit_conversion(n, type);
 }
 
+// Adds new implicit conversion node with previous node as child
+// Used for type promotion
 Node *SemanticAnalysis::implicit_conversion(Node *n, const std::shared_ptr<Type> &type) {
   std::unique_ptr<Node> conversion(new Node(AST_IMPLICIT_CONVERSION, {n}));
   conversion->set_type(type);
   return conversion.release();
 }
 
+// Visits a struct type node
 void SemanticAnalysis::visit_struct_type(Node *n) {
   bool is_const = false;
   bool is_volatile = false;
   bool type_set = false;
   std::shared_ptr<Type> struct_type;
+
   // Process type
   for (auto i = n->cbegin(); i != n->cend(); i++) {
     Node *type_child = *i;
@@ -92,11 +104,11 @@ void SemanticAnalysis::visit_union_type(Node *n) {
 
 /**
  * Recursively processes a (possibly chained) declarator for a variable declaration.
- * Annotates parent/root node with name of var and type.
+ * Annotates var ident node with name of var and type.
+ * Adds annotated node to vector of newly declared variables.
  **/
 void SemanticAnalysis::process_declarator(std::vector<Node *> &vars, Node *declarator, const std::shared_ptr<Type> &base_type) {
   std::shared_ptr<Type> new_base_type;
-  
   int tag = declarator->get_tag();
   switch (tag) {
     case AST_ARRAY_DECLARATOR:
@@ -122,6 +134,8 @@ void SemanticAnalysis::process_declarator(std::vector<Node *> &vars, Node *decla
   }
 }
 
+// Visits variable declaration node.
+// Processes base type and declarators.
 void SemanticAnalysis::visit_variable_declaration(Node *n) {
   // child 0 is storage (TODO?)
 
@@ -141,6 +155,7 @@ void SemanticAnalysis::visit_variable_declaration(Node *n) {
   add_vars_to_sym_table(vars);
 }
 
+// Visits basic type node, processing the full type (and qualifiers if present)
 void SemanticAnalysis::visit_basic_type(Node *n) {
   bool type_set = false;
   bool is_signed = true;
@@ -235,6 +250,7 @@ void SemanticAnalysis::add_vars_to_sym_table(std::vector<Node *> &vars) {
   }
 }
 
+// Processes a functions parameters, processing each type, and adding them as members to the function
 void SemanticAnalysis::process_function_parameters(Node *parameter_list, std::vector<Node *> &declared_parameters, std::shared_ptr<Type> &fn_type) {
   // Process function parameter types
   for (auto i = parameter_list->cbegin(); i != parameter_list->cend(); i++) {
@@ -253,6 +269,7 @@ void SemanticAnalysis::process_function_parameters(Node *parameter_list, std::ve
   }
 }
 
+// Visits return expression, checking that the type is compatible with its function return type.
 void SemanticAnalysis::visit_return_expression_statement(Node *n) {
   // Visit return expression
   visit(n->get_kid(0));
@@ -263,6 +280,10 @@ void SemanticAnalysis::visit_return_expression_statement(Node *n) {
   check_assignment(m_cur_function->get_base_type(), return_type, loc);
 }
 
+/**
+ * Visits function definition, processing parameters, defining function, 
+ * defining parameters, and visiting function body.
+ **/ 
 void SemanticAnalysis::visit_function_definition(Node *n) {
   // Visit return type
   visit(n->get_kid(0));
@@ -290,6 +311,9 @@ void SemanticAnalysis::visit_function_definition(Node *n) {
   leave_scope();
 }
 
+/**
+ * Visits function declaration, processing parameters, declaring function.
+ **/ 
 void SemanticAnalysis::visit_function_declaration(Node *n) {
   // Visit return type
   visit(n->get_kid(0));
@@ -303,22 +327,15 @@ void SemanticAnalysis::visit_function_declaration(Node *n) {
   process_function_parameters(n->get_kid(2), declared_parameters, fn_type);  
   // Define function
   if (m_cur_symtab->has_symbol_local(fn_name)) SemanticError::raise(n->get_loc(), "Function name already in use");
-  m_cur_symtab->define(SymbolKind::FUNCTION, fn_name, fn_type);
+  m_cur_symtab->declare(SymbolKind::FUNCTION, fn_name, fn_type);
 }
 
 // NOTE: this is currently unused due to process_function_parameters bypassing it
-void SemanticAnalysis::visit_function_parameter(Node *n) {
-  // Visit base type
-  visit(n->get_kid(0));
-  std::shared_ptr<Type> base_type = n->get_kid(0)->get_type();
+void SemanticAnalysis::visit_function_parameter(Node *n) { }
 
-  // TODO
-  std::vector<Node *> vars;
-  // Process declarators
-  process_declarator(vars, n->get_kid(1), base_type);
-}
-
-// Enter new scope and process each child in a statement list
+/**
+ * Enter new scope and visit each child in a statement list.
+ **/
 void SemanticAnalysis::visit_statement_list(Node *n) {
   enter_scope();
   for (auto i = n->cbegin(); i != n->cend(); i++) {
@@ -328,6 +345,9 @@ void SemanticAnalysis::visit_statement_list(Node *n) {
   leave_scope();
 }
 
+/**
+ * Visits struct type definition. Processes all struct fields.
+ **/
 void SemanticAnalysis::visit_struct_type_definition(Node *n) {
   // Create and define struct type
   const std::string &struct_name = n->get_kid(0)->get_str();
@@ -338,6 +358,7 @@ void SemanticAnalysis::visit_struct_type_definition(Node *n) {
   Node *field_list = n->get_kid(1);
   std::vector<Node *> declared_fields;
 
+  // Process fields
   for (auto i = field_list->cbegin(); i != field_list->cend(); i++) {
     Node *field = *i;  
     // Visit base type
@@ -364,6 +385,7 @@ void SemanticAnalysis::visit_struct_type_definition(Node *n) {
   }
 }
 
+// Checks if an operator is relational or logical
 bool SemanticAnalysis::is_relational_or_logical_op(int tag) {
   switch (tag) {
     case TOK_LT:
@@ -380,11 +402,13 @@ bool SemanticAnalysis::is_relational_or_logical_op(int tag) {
   }
 }
 
+// Checks if a node is a pointer dereference
 bool SemanticAnalysis::is_pointer_dereference(Node *n) {
   return n->get_kid(0)->get_tag() == TOK_ASTERISK && n->get_kid(1)->get_tag() == AST_VARIABLE_REF;
 }
 
 /**
+ * Checks if a node is an l-value, which is one of the following:
  * a reference to a variable
  * an array subscript reference
  * a pointer dereference
@@ -407,6 +431,9 @@ bool SemanticAnalysis::is_lvalue(Node *n) {
   }
 }
 
+/**
+ * Checks if the right type can be legally assigned to the left type.
+ **/
 void SemanticAnalysis::check_assignment(const std::shared_ptr<Type> &left, const std::shared_ptr<Type> &right, const Location &loc) {
   // Check for assignment to const lvalue
   if (left->is_const() && !left->is_pointer() && !left->is_array()) SemanticError::raise(loc, "Assignment to const l-value");
@@ -435,7 +462,10 @@ void SemanticAnalysis::check_assignment(const std::shared_ptr<Type> &left, const
   }
 }
 
-
+/**
+ * Processes an assignment binary expression.
+ * Promotes right side if necessary.
+ **/
 void SemanticAnalysis::process_assignment(Node *n) {
   std::shared_ptr<Type> left = n->get_kid(1)->get_type();
   std::shared_ptr<Type> right = n->get_kid(2)->get_type();
@@ -454,6 +484,10 @@ void SemanticAnalysis::process_assignment(Node *n) {
   n->set_type(left);
 }
 
+/**
+ * Processes a non-assignment binary expression.
+ * Promotes types when necessary.
+ **/
 void SemanticAnalysis::process_non_assignment(Node *n) {
   std::shared_ptr<Type> left = n->get_kid(1)->get_type();
   std::shared_ptr<Type> right = n->get_kid(2)->get_type();
@@ -475,7 +509,6 @@ void SemanticAnalysis::process_non_assignment(Node *n) {
 
   // Check for integral types
   if (!left->is_integral() || !right->is_integral()) SemanticError::raise(n->get_loc(), "Illegal binary expression");
-
 
   bool left_promoted_is_signed = (left->is_signed() != right->is_signed()) && left->is_signed() ? false : left->is_signed();
   bool right_promoted_is_signed = (left->is_signed() != right->is_signed()) && right->is_signed() ? false : right->is_signed();
@@ -516,6 +549,9 @@ void SemanticAnalysis::process_non_assignment(Node *n) {
   n->set_type(return_type);
 }
 
+/**
+ * Visits and processes a binary expression.
+ **/
 void SemanticAnalysis::visit_binary_expression(Node *n) {
   int operator_tag = n->get_kid(0)->get_tag();
   // Visit left child 
@@ -530,6 +566,9 @@ void SemanticAnalysis::visit_binary_expression(Node *n) {
   }
 }
 
+/**
+ * Visits and processes a unary expression.
+ **/
 void SemanticAnalysis::visit_unary_expression(Node *n) {
   // Visit operand
   visit(n->get_kid(1));
@@ -583,6 +622,11 @@ void SemanticAnalysis::visit_cast_expression(Node *n) {
   // TODO: implement
 }
 
+/**
+ * Visits and processes a function call.
+ * Checks for a valid function name, matching number of parameters,
+ * and that types of parameters/arguments are legal.
+ **/
 void SemanticAnalysis::visit_function_call_expression(Node *n) {
   const std::string &fn_name = n->get_kid(0)->get_kid(0)->get_str();
   Node *arg_list = n->get_kid(1);
@@ -611,6 +655,9 @@ void SemanticAnalysis::visit_function_call_expression(Node *n) {
   n->set_type(fn_type->get_base_type());
 }
 
+/**
+ * Visits struct field reference.
+ **/
 void SemanticAnalysis::visit_field_ref_expression(Node *n) {
   // Visit variable
   visit(n->get_kid(0));
@@ -631,6 +678,9 @@ void SemanticAnalysis::visit_field_ref_expression(Node *n) {
   SemanticError::raise(n->get_loc(), "Field does not exist in struct");
 }
 
+/**
+ * Visits indirect struct field reference (e.g. use of ->).
+ **/
 void SemanticAnalysis::visit_indirect_field_ref_expression(Node *n) {
   // Visit variable
   visit(n->get_kid(0));
@@ -653,6 +703,9 @@ void SemanticAnalysis::visit_indirect_field_ref_expression(Node *n) {
   SemanticError::raise(n->get_loc(), "Field does not exist in struct");
 }
 
+/**
+ * Visits array element reference.
+ **/
 void SemanticAnalysis::visit_array_element_ref_expression(Node *n) {
   // Visit variable
   visit(n->get_kid(0));
@@ -665,13 +718,14 @@ void SemanticAnalysis::visit_array_element_ref_expression(Node *n) {
   if (!n->get_kid(1)->get_type()->is_integral()) SemanticError::raise(n->get_loc(), "Cannot reference array with non-integral index");
 
   // TODO: check for array index out of bounds?
-  // TODO: allow pointers to be ref here as well?
 
   // Annotate node
   n->set_type(n->get_kid(0)->get_type()->get_base_type());
 }
 
-// Annotates var reference with pointer to Symbol representing symbol table entry
+/**
+ * Annotates var reference with pointer to Symbol representing symbol table entry.
+ **/
 void SemanticAnalysis::visit_variable_ref(Node *n) {
   const std::string &var_name = n->get_kid(0)->get_str();
   Symbol *sym = m_cur_symtab->lookup_recursive(var_name);
@@ -681,6 +735,9 @@ void SemanticAnalysis::visit_variable_ref(Node *n) {
   n->set_symbol(sym);
 }
 
+/**
+ * Visits literal value. Annotates node with processed type.
+ **/
 void SemanticAnalysis::visit_literal_value(Node *n) {
   int tag = n->get_kid(0)->get_tag();
   const std::string &lexeme = n->get_kid(0)->get_str();
@@ -712,5 +769,3 @@ void SemanticAnalysis::visit_literal_value(Node *n) {
   // Annotate node with literal type
   n->set_type(lit_type);
 }
-
-// TODO: implement helper functions
