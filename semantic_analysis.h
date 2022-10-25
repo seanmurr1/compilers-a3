@@ -60,7 +60,7 @@ private:
   void process_assignment(Node *n);
   void process_non_assignment(Node *n);
 
-  void check_assignment(std::shared_ptr<Type> &left, std::shared_ptr<Type> &right);
+  void check_assignment(std::shared_ptr<Type> &left, std::shared_ptr<Type> &right, Location &loc);
 };
 
 #endif // SEMANTIC_ANALYSIS_H

@@ -345,7 +345,7 @@ void SemanticAnalysis::visit_struct_type_definition(Node *n) {
 }
 
 bool SemanticAnalysis::is_relational_or_logical_op(int tag) {
-  swtich (tag) {
+  switch (tag) {
     case TOK_LT:
     case TOK_LTE:
     case TOK_GT:
@@ -385,9 +385,9 @@ bool SemanticAnalysis::is_lvalue(Node *n) {
   }
 }
 
-void SemanticAnalysis::check_assignment(std::shared_ptr<Type> &left, std::shared_ptr<Type> &right) {
+void SemanticAnalysis::check_assignment(std::shared_ptr<Type> &left, std::shared_ptr<Type> &right, Location &loc) {
   // Check for assignment to const lvalue
-  if (left->is_const() && !left->is_pointer()) SemanticError::raise(n->get_loc(), "Assignment to const l-value");
+  if (left->is_const() && !left->is_pointer()) SemanticError::raise(loc, "Assignment to const l-value");
 
   // Integer assignment
   if (left->is_integral() && right->is_integral()) {
@@ -395,16 +395,16 @@ void SemanticAnalysis::check_assignment(std::shared_ptr<Type> &left, std::shared
   } 
   // Pointer assignment
   else if (left->is_pointer() && right->is_pointer()) {
-    if (!left->get_unqualified_type()->is_same(right->get_unqualified_type())) SemanticError::raise(n->get_loc(), "Mismatch in pointer types");
-    if ((right->is_const() && !left->is_const()) || (right->is_volatile() && !left->is_volatile())) SemanticError::raise(n->get_loc(), "Mismatch in qualifers");
+    if (!left->get_unqualified_type()->is_same(right->get_unqualified_type())) SemanticError::raise(loc, "Mismatch in pointer types");
+    if ((right->is_const() && !left->is_const()) || (right->is_volatile() && !left->is_volatile())) SemanticError::raise(loc, "Mismatch in qualifers");
   } 
   // Struct assignment
   else if (left->is_struct() && right->is_struct()) {
-    if (!left->is_same(right)) SemanticError::raise(n->get_loc(), "Mismatch in struct types");
+    if (!left->is_same(right.get())) SemanticError::raise(loc, "Mismatch in struct types");
   } 
   // Malformed assignment
   else {
-    SemanticError::raise(n->get_loc(), "Malformed assignment types");
+    SemanticError::raise(loc, "Malformed assignment types");
   }
 }
 
@@ -417,9 +417,9 @@ void SemanticAnalysis::process_assignment(Node *n) {
   if (!is_lvalue(n->get_kid(1))) SemanticError::raise(n->get_loc(), "Assignment to non l-value");
 
   // Check for legal assignment
-  check_assignment(left, right);
+  check_assignment(left, right, n->get_loc());
   // Check for promotion
-  if (left->is_integral() && right->is_integral() && !left->is_same(right)) {
+  if (left->is_integral() && right->is_integral() && !left->is_same(right.get())) {
     n->set_kid(2, promote_type(n->get_kid(2), left->get_basic_type_kind(), left->is_signed()));
   } 
   // Annotate node
@@ -457,21 +457,21 @@ void SemanticAnalysis::process_non_assignment(Node *n) {
     n->set_kid(2, promote_type(n->get_kid(2), BasicTypeKind::INT, right_promoted_is_signed));
   } 
   // Promote left to right
-  else if (left->get_basic_type_kind() < BasicTypeKind::INT) {
+  else if (left->get_basic_type_kind() < BasicTypeKind::INT || left->get_basic_type_kind() < right->get_basic_type_kind()) {
     BasicTypeKind promotion_type = right->get_basic_type_kind();
     n->set_kid(1, promote_type(n->get_kid(1), promotion_type, left_promoted_is_signed));
     if (right_promoted_is_signed != right->is_signed()) n->set_kid(2, promote_type(n->get_kid(2), promotion_type, right_promoted_is_signed));
   } 
   // Promote right to left
-  else if (right->get_basic_type_kind() < BasicTypeKind::INT) {
+  else if (right->get_basic_type_kind() < BasicTypeKind::INT || right->get_basic_type_kind() < left->get_basic_type_kind()) {
     BasicTypeKind promotion_type = left->get_basic_type_kind();
     n->set_kid(2, promote_type(n->get_kid(2), promotion_type, right_promoted_is_signed));
     if (left_promoted_is_signed != left->is_signed()) n->set_kid(1, promote_type(n->get_kid(1), promotion_type, left_promoted_is_signed));
   } 
   // Promote only signs
   else if (left->is_signed() != left_promoted_is_signed || right->is_signed != right_promoted_is_signed) {
-    if (left_promoted_is_signed != left->is_signed()) n->set_kid(1, promote_type(n->get_kid(1), promotion_type, left_promoted_is_signed));
-    if (right_promoted_is_signed != right->is_signed()) n->set_kid(2, promote_type(n->get_kid(2), promotion_type, right_promoted_is_signed));
+    if (left_promoted_is_signed != left->is_signed()) n->set_kid(1, promote_type(n->get_kid(1), left->get_basic_type_kind(), left_promoted_is_signed));
+    if (right_promoted_is_signed != right->is_signed()) n->set_kid(2, promote_type(n->get_kid(2), right->get_basic_type_kind(), right_promoted_is_signed));
   }
 
   // Annotate node with return type
@@ -494,7 +494,7 @@ void SemanticAnalysis::visit_binary_expression(Node *n) {
   // Visit right child
   visit(n->get_kid(2));
 
-  if (tag == TOK_ASSIGN) {
+  if (operator_tag == TOK_ASSIGN) {
     process_assignment(n);
   } else {
     process_non_assignment(n);
@@ -515,9 +515,11 @@ void SemanticAnalysis::visit_unary_expression(Node *n) {
       n->set_type(operand_type->get_base_type());
       return;
     case TOK_AMPERSAND:
-      if (!is_lvalue(n->get_kid(1))) SemanticError::raise(n->get_loc(), "Cannot get address of non-lvalue");
-      std::shared_ptr<Type> new_type(new PointerType(operand_type));
-      n->set_type(new_type);
+      {
+        if (!is_lvalue(n->get_kid(1))) SemanticError::raise(n->get_loc(), "Cannot get address of non-lvalue");
+        std::shared_ptr<Type> new_type(new PointerType(operand_type));
+        n->set_type(new_type);
+      }  
       return;
     case TOK_MINUS:
       if (!operand_type->is_integral()) SemanticError::raise(n->get_loc(), "Cannot apply minus to non-integral type");
@@ -533,7 +535,7 @@ void SemanticAnalysis::visit_unary_expression(Node *n) {
       if (operand_type->get_basic_type_kind() < BasicTypeKind::INT) {
         n->set_kid(1, promote_type(n->get_kid(1), BasicTypeKind::INT, operand_type->is_signed()));
       } 
-      n->set_type(std::shared_ptr<Type>(new BasicType(BasicTypeKind::INT, true)););
+      n->set_type(std::shared_ptr<Type>(new BasicType(BasicTypeKind::INT, true)));
       return;
     default:
       SemanticError::raise(n->get_loc(), "Unrecognized unary expression");
@@ -567,11 +569,11 @@ void SemanticAnalysis::visit_function_call_expression(Node *n) {
     visit(parameter);
     std::shared_ptr<Type> right_type = parameter->get_type();
     std::shared_ptr<Type> left_type = fn_type->get_member(i).get_type();
-    check_assignment(left_type, right_type);
+    check_assignment(left_type, right_type, parameter->get_loc());
 
     // Check for promotion
-    if (left_type->is_integral() && right_type->is_integral() !left_type->is_same(right_type)) {
-      n->set_kid(i, promote_type(n->get_kid(i), left->get_basic_type_kind(), left->is_signed()));
+    if (left_type->is_integral() && right_type->is_integral() && !left_type->is_same(right_type.get())) {
+      n->set_kid(i, promote_type(n->get_kid(i), left_type->get_basic_type_kind(), left_type->is_signed()));
     } 
     // Annotate parameter
     n->get_kid(i)->set_type(left_type);
@@ -607,19 +609,22 @@ void SemanticAnalysis::visit_literal_value(Node *n) {
   const std::string &lexeme = n->get_kid(0)->get_str();
   const Location &loc = n->get_kid(0)->get_loc();
   std::shared_ptr<Type> lit_type;
+  LiteralValue lit;
 
   switch (tag) {
     case TOK_INT_LIT:
-      LiteralValue lit = LiteralValue::from_int_literal(lexeme, loc);
-      BasicTypeKind lit_kind = lit.is_long() ? BasicTypeKind::LONG : BasicTypeKind::INT;
-      lit_type = std::shared_ptr<Type>(new BasicType(lit_kind, !lit.is_unsigned()));
+      {
+        lit = LiteralValue::from_int_literal(lexeme, loc);
+        BasicTypeKind lit_kind = lit.is_long() ? BasicTypeKind::LONG : BasicTypeKind::INT;
+        lit_type = std::shared_ptr<Type>(new BasicType(lit_kind, !lit.is_unsigned()));
+      }
       break;
     case TOK_CHAR_LIT:
-      LiteralValue lit = LiteralValue::from_char_literal(lexeme, loc);
+      lit = LiteralValue::from_char_literal(lexeme, loc);
       lit_type = std::shared_ptr<Type>(new BasicType(BasicTypeKind::INT, !lit.is_unsigned()));
       break;
     case TOK_STR_LIT:
-      LiteralValue lit = LiteralValue::from_str_literal(lexeme, loc);
+      lit = LiteralValue::from_str_literal(lexeme, loc);
       lit_type = std::shared_ptr<Type>(new BasicType(BasicTypeKind::CHAR, !lit.is_unsigned()));
       lit_type = std::shared_ptr<Type>(new QualifiedType(lit_type, TypeQualifier::CONST));
       lit_type = std::shared_ptr<Type>(new PointerType(lit_type));
